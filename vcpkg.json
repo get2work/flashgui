@@ -1,0 +1,16 @@
+{
+  "name": "flashgui",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "name": "directxsdk",
+      "features": [
+        "xaudio2-7",
+        "xinput1-3"
+      ]
+    },
+    "directx-headers",
+    "directx-dxc",
+    "stb"
+  ]
+}

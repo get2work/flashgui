@@ -1,0 +1,19 @@
+Package: directxsdk
+Version: jun10
+Port-Version: 8
+Architecture: x64-windows
+Multi-Arch: same
+Abi: cf92e6b4657bc636a8ba6e25e8ee77991bd3b9377396a936cfab66cb9856da5b
+Description: Legacy DirectX SDK
+
+Package: directxsdk
+Feature: xaudio2-7
+Architecture: x64-windows
+Multi-Arch: same
+Description: Include headers/libs for legacy XAudio 2.7 (prefer use of XAudio2Redist)
+
+Package: directxsdk
+Feature: xinput1-3
+Architecture: x64-windows
+Multi-Arch: same
+Description: Include headers for legacy XInput 1.3 (prefer use of XInput 9.1.0 or 1.4)

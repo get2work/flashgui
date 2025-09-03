@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{5e674023-624e-44fd-b78c-38faa1ab9d09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vcpkg">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{3ada03c2-80d4-477f-96ac-227323fdbff8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\helpers">
+      <UniqueIdentifier>{323c1c4f-4929-4600-b705-941327132d74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pch">
+      <UniqueIdentifier>{0e95056a-7d22-4d16-a39c-d3bb2671ed08}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="procmanager.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="dxgicontext.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="srv_allocator.hpp">
+      <Filter>src\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="root_sig_builder.hpp">
+      <Filter>src\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="pso_builder.hpp">
+      <Filter>src\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="frame_resource.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="shader_compiler.hpp">
+      <Filter>src\helpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <Filter>pch</Filter>
+    </ClCompile>
+    <ClCompile Include="flashgui.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="procmanager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dxgicontext.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\vcpkg.json">
+      <Filter>vcpkg</Filter>
+    </None>
+    <None Include="..\vcpkg-configuration.json">
+      <Filter>vcpkg</Filter>
+    </None>
+  </ItemGroup>
+</Project>

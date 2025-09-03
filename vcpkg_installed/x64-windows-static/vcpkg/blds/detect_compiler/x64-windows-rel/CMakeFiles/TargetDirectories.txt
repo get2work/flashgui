@@ -1,0 +1,2 @@
+C:/Users/dev.DESKTOP-Q7BA7UO/source/repos/get2work/flashgui/vcpkg_installed/x64-windows-static/vcpkg/blds/detect_compiler/x64-windows-rel/CMakeFiles/edit_cache.dir
+C:/Users/dev.DESKTOP-Q7BA7UO/source/repos/get2work/flashgui/vcpkg_installed/x64-windows-static/vcpkg/blds/detect_compiler/x64-windows-rel/CMakeFiles/rebuild_cache.dir
