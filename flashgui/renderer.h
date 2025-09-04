@@ -39,7 +39,9 @@ namespace fgui {
 	private:
 
 		bool m_pending_resize = false; // Flag to indicate if a resize is pending
+		
 		uint32_t m_frame_index = 0; // Current frame index
+		
 		D3D12_VIEWPORT m_viewport = {}; // Viewport for rendering
 		D3D12_RECT m_scissor_rect = {}; // Scissor rectangle for rendering
 

@@ -224,21 +224,4 @@ void s_dxgicontext::create_pipeline() {
 
 	if (!pso_triangle)
 		throw std::runtime_error("Failed to create PSO for triangles");
-
-	pso_line = c_pso_builder(device)
-		.set_root_signature(root_sig.Get())
-		.set_vertex_shader(shaders->get_shader_blob(shader_type::vertex))
-		.set_pixel_shader(shaders->get_shader_blob(shader_type::pixel_base))
-		.set_input_layout(input_layout)
-		.set_rtv_format(0, DXGI_FORMAT_R8G8B8A8_UNORM)
-		.set_dsv_format(DXGI_FORMAT_UNKNOWN) // No depth-stencil view
-		.set_primitive_topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE)
-		.disable_depth()
-		.enable_alpha_blending()
-		.set_num_render_targets(1) // One render target
-		.set_sample_desc({ 1, 0 }) // No multisampling
-		.build();
-
-	if (!pso_line)
-		throw std::runtime_error("Failed to create PSO for lines");
 }

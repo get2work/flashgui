@@ -27,7 +27,6 @@ namespace fgui {
 		// Pipeline + Geometry components
 		ComPtr<ID3D12RootSignature> root_sig; // Root signature for the pipeline
 		ComPtr<ID3D12PipelineState> pso_triangle; // Pipeline state object for triangles
-		ComPtr<ID3D12PipelineState> pso_line; // Pipeline state object for lines	
 
 		std::unique_ptr<c_srv_allocator> srv; // Shader resource view allocator
 		std::unique_ptr<c_shader_builder> shaders; // Shader compiler and manager

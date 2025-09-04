@@ -14,7 +14,7 @@ namespace fgui {
 			return true; // Already initialized
 		}
 
-		// Standalone mode, create a new renderer instance
+		// Standalone mode, create our renderer instance
 		render = std::make_unique<c_renderer>(process_data(), D3D_FEATURE_LEVEL_12_1, target_buffer_count);
 
 		if (!render) {
