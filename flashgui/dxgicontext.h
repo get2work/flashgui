@@ -16,6 +16,20 @@
 using Microsoft::WRL::ComPtr;
 
 namespace fgui {
+
+	// Vertex structure: float2 position
+	static const float quad_vertices[4][2] = {
+		{ -0.5f, -0.5f }, // bottom-left
+		{  0.5f, -0.5f }, // bottom-right
+		{  0.5f,  0.5f }, // top-right
+		{ -0.5f,  0.5f }  // top-left
+	};
+
+	static const uint16_t quad_indices[6] = {
+		0, 1, 2, // first triangle
+		0, 2, 3  // second triangle
+	};
+
 	struct s_dxgicontext {
 		// Core DXGI components
 		ComPtr<IDXGIFactory7> dxgi_factory;
@@ -37,6 +51,12 @@ namespace fgui {
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
 		uint32_t buffer_count = 3; // Default buffer count for swapchain
 
+
+		ComPtr<ID3D12Resource> m_quad_vertex_buffer;
+		ComPtr<ID3D12Resource> m_quad_index_buffer;
+		D3D12_VERTEX_BUFFER_VIEW m_quad_vbv = {};
+		D3D12_INDEX_BUFFER_VIEW  m_quad_ibv = {};
+
 		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
 
 		void create_device_and_swapchain(const process_data& data);
@@ -44,6 +64,8 @@ namespace fgui {
 		void create_srv_heap();
 		void create_backbuffers();
 		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
+
+		void create_quad_buffers();
 		
 		void create_pipeline();
 		void initialize_hooked();

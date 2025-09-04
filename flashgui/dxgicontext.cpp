@@ -22,6 +22,7 @@ void s_dxgicontext::initialize_hooked() {
 	create_rtv_heap();
 	create_backbuffers();
 	create_srv_heap();
+	create_quad_buffers();
 }
 
 void s_dxgicontext::initialize_standalone(const process_data& data, const uint32_t& target_buf_count) {
@@ -30,6 +31,7 @@ void s_dxgicontext::initialize_standalone(const process_data& data, const uint32
 	create_rtv_heap();
 	create_backbuffers();
 	create_srv_heap();
+	create_quad_buffers();
 }
 
 void s_dxgicontext::create_device_and_swapchain(const process_data& data) {
@@ -185,6 +187,67 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 	}
 }
 
+void s_dxgicontext::create_quad_buffers() {
+	// --- Vertex Buffer ---
+	const UINT vb_size = sizeof(quad_vertices);
+
+	D3D12_HEAP_PROPERTIES heap_props = {};
+	heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	D3D12_RESOURCE_DESC vb_desc = {};
+	vb_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	vb_desc.Width = vb_size;
+	vb_desc.Height = 1;
+	vb_desc.DepthOrArraySize = 1;
+	vb_desc.MipLevels = 1;
+	vb_desc.SampleDesc.Count = 1;
+	vb_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	device->CreateCommittedResource(
+		&heap_props,
+		D3D12_HEAP_FLAG_NONE,
+		&vb_desc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_quad_vertex_buffer)
+	);
+
+	// Upload vertex data
+	void* vb_ptr = nullptr;
+	m_quad_vertex_buffer->Map(0, nullptr, &vb_ptr);
+	memcpy(vb_ptr, quad_vertices, vb_size);
+	m_quad_vertex_buffer->Unmap(0, nullptr);
+
+	m_quad_vbv.BufferLocation = m_quad_vertex_buffer->GetGPUVirtualAddress();
+	m_quad_vbv.SizeInBytes = vb_size;
+	m_quad_vbv.StrideInBytes = sizeof(float) * 2;
+
+	// --- Index Buffer ---
+	const UINT ib_size = sizeof(quad_indices);
+
+	D3D12_RESOURCE_DESC ib_desc = vb_desc;
+	ib_desc.Width = ib_size;
+
+	device->CreateCommittedResource(
+		&heap_props,
+		D3D12_HEAP_FLAG_NONE,
+		&ib_desc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_quad_index_buffer)
+	);
+
+	// Upload index data
+	void* ib_ptr = nullptr;
+	m_quad_index_buffer->Map(0, nullptr, &ib_ptr);
+	memcpy(ib_ptr, quad_indices, ib_size);
+	m_quad_index_buffer->Unmap(0, nullptr);
+
+	m_quad_ibv.BufferLocation = m_quad_index_buffer->GetGPUVirtualAddress();
+	m_quad_ibv.SizeInBytes = ib_size;
+	m_quad_ibv.Format = DXGI_FORMAT_R16_UINT;
+}
+
 void s_dxgicontext::create_pipeline() {
 	if (!device)
 		throw std::runtime_error("D3D12 device is not initialized, cannot create root signature and PSO");
@@ -203,15 +266,22 @@ void s_dxgicontext::create_pipeline() {
 		throw std::runtime_error("Failed to create root signature");
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> input_layout = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,        0, D3D12_APPEND_ALIGNED_ELEMENT,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,        0, D3D12_APPEND_ALIGNED_ELEMENT,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT,  0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		// Slot 0: unit quad vertex
+		{ "POSITION",   0, DXGI_FORMAT_R32G32_FLOAT,    0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
+
+		// Slot 1: instance data (shape_instance)
+		{ "TEXCOORD",   1, DXGI_FORMAT_R32G32_FLOAT,    1, 0,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_pos
+		{ "TEXCOORD",   2, DXGI_FORMAT_R32G32_FLOAT,    1, 8,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_size
+		{ "TEXCOORD",   3, DXGI_FORMAT_R32_FLOAT,       1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_rot
+		{ "TEXCOORD",   4, DXGI_FORMAT_R32_FLOAT,       1, 20, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_stroke
+		{ "TEXCOORD",   5, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_clr
+		{ "TEXCOORD",   6, DXGI_FORMAT_R32_UINT,        1, 40, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_type
 	};
 
 	pso_triangle = c_pso_builder(device)
 		.set_root_signature(root_sig.Get())
 		.set_vertex_shader(shaders->get_shader_blob(shader_type::vertex))
-		.set_pixel_shader(shaders->get_shader_blob(shader_type::pixel_base))
+		.set_pixel_shader(shaders->get_shader_blob(shader_type::pixel))
 		.set_input_layout(input_layout)
 		.set_rtv_format(0, DXGI_FORMAT_R8G8B8A8_UNORM)
 		.disable_depth()

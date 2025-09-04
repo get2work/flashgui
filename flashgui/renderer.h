@@ -21,6 +21,15 @@ namespace fgui {
 		hooked // using swapchain and command queue
 	};
 
+	struct shape_instance {
+		DirectX::XMFLOAT2 pos; //start position, center position for circles
+		DirectX::XMFLOAT2 size; // size (quad), radius (circle), endpos (line)
+		float rotation; //rotation in radians (used for quads)
+		float stroke_width; //line width for lines, >0 for outline on filled shapes
+		DirectX::XMFLOAT4 clr; //rgba float colors (0f-1f)
+		uint32_t shape_type; //0=quad, 1=quad outline, 2=circle, 3=circle outline, 4=line
+	};
+
 	class c_renderer {
 	public:
 		c_renderer(process_data procdata, D3D_FEATURE_LEVEL feature_lvl, UINT buffer_count)
@@ -36,7 +45,12 @@ namespace fgui {
 		void resize_frame();
 		void begin_frame();
 		void end_frame();
+
+		//draw functions
+		void add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
 	private:
+
+		std::vector<shape_instance> instances;
 
 		bool m_pending_resize = false; // Flag to indicate if a resize is pending
 		
@@ -54,5 +68,7 @@ namespace fgui {
 		s_dxgicontext m_dx; // DXGI context containing factory, adapter, device, command queue, and swapchain
 		render_mode m_mode = render_mode::hooked; // Current rendering mode
 		process_data m_proc; // Information about the target process
+
+
 	};
 }

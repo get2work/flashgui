@@ -23,9 +23,7 @@ namespace fgui {
 
 	enum class shader_type {
 		vertex,
-		pixel_base,
-		pixel_bordered,
-		pixel_textured,
+		pixel,
 	};
 
 	class c_shader_builder
@@ -64,19 +62,6 @@ namespace fgui {
 			if (!m_pixel_shader_blob) {
 				throw std::runtime_error("Failed to compile pixel shader");
 			}
-
-			// Compile pixel shader with border from string
-			m_pixel_shader_border_blob = compile(m_pixel_border_shader_str, L"PSMainWithBorder", L"ps_6_0");
-			if (!m_pixel_shader_border_blob) {
-				throw std::runtime_error("Failed to compile pixel shader with border");
-			}
-
-			// Compile pixel shader with texture from string
-			m_pixel_shader_textured_blob = compile(m_pixel_textured_shader_str, L"PSMainTextured", L"ps_6_0");
-			if (!m_pixel_shader_textured_blob) {
-				throw std::runtime_error("Failed to compile pixel shader with texture");
-			}
-
 			std::cout << "[Shader Compiler] All shaders compiled successfully." << std::endl;
 		}
 
@@ -210,12 +195,8 @@ namespace fgui {
 			switch (type) {
 			case shader_type::vertex:
 				return m_vertex_shader_blob;
-			case shader_type::pixel_base:
+			case shader_type::pixel:
 				return m_pixel_shader_blob;
-			case shader_type::pixel_bordered:
-				return m_pixel_shader_border_blob;
-			case shader_type::pixel_textured:
-				return m_pixel_shader_textured_blob;
 			default:
 				return nullptr;
 			}
@@ -228,8 +209,6 @@ namespace fgui {
 			m_refl.Reset();
 			m_vertex_shader_blob.Reset();
 			m_pixel_shader_blob.Reset();
-			m_pixel_shader_border_blob.Reset();
-			m_pixel_shader_textured_blob.Reset();
 		}
 
 	private:
@@ -240,85 +219,142 @@ namespace fgui {
 
 		ComPtr<IDxcBlob> m_vertex_shader_blob;
 		ComPtr<IDxcBlob> m_pixel_shader_blob;
-		ComPtr<IDxcBlob> m_pixel_shader_border_blob;
-		ComPtr<IDxcBlob> m_pixel_shader_textured_blob;
 
 		const std::string m_vertex_shader_str = R"(
-        struct VS_INPUT {
-            float2 position : POSITION;
-            float2 uv : TEXCOORD0;
-            float4 color : COLOR;
-        };
+        cbuffer TransformCB : register(b0)
+		{
+			float4x4 projection_matrix;
+		};
 
-        struct VS_OUTPUT {
-            float4 position : SV_POSITION;
-            float2 uv : TEXCOORD0;
-            float4 color : COLOR;
-        };
+		struct VS_INPUT
+		{
+			float2 quad_pos   : POSITION;   // [-0.5, -0.5] to [+0.5, +0.5] (unit quad corners)
+			// Instance data (from IA slot 1)
+			float2 inst_pos   : TEXCOORD1;  // shape_instance.pos
+			float2 inst_size  : TEXCOORD2;  // shape_instance.size
+			float  inst_rot   : TEXCOORD3;  // shape_instance.rotation
+			float  inst_stroke: TEXCOORD4;  // shape_instance.stroke_width
+			float4 inst_clr   : TEXCOORD5;  // shape_instance.clr
+			uint   inst_type  : TEXCOORD6;  // shape_instance.shape_type
+		};
 
-        cbuffer TransformCB : register(b0) {
-            float4x4 projection_matrix;
-        };
+		struct VS_OUTPUT
+		{
+			float4 sv_position : SV_POSITION;
+			float2 quad_pos    : TEXCOORD0;
+			float2 inst_pos    : TEXCOORD1;
+			float2 inst_size   : TEXCOORD2;
+			float  inst_rot    : TEXCOORD3;
+			float  inst_stroke : TEXCOORD4;
+			float4 inst_clr    : TEXCOORD5;
+			uint   inst_type   : TEXCOORD6;
+		};
 
-        VS_OUTPUT VSMain(VS_INPUT input) {
-            VS_OUTPUT output;
-            float4 pos = float4(input.position, 0.0f, 1.0f);
-            output.position = mul(projection_matrix, pos);
-            output.uv = input.uv;
-            output.color = input.color;
-            return output;
-        }
+		VS_OUTPUT VSMain(VS_INPUT input)
+		{
+			VS_OUTPUT output;
+
+			// Apply rotation and scale to quad_pos
+			float2 local = input.quad_pos;
+			if (input.inst_rot != 0.0f)
+			{
+				float s = sin(input.inst_rot), c = cos(input.inst_rot);
+				local = float2(c * local.x - s * local.y, s * local.x + c * local.y);
+			}
+			local *= input.inst_size;
+
+			// World position
+			float2 world_pos = input.inst_pos + local;
+			float4 pos = float4(world_pos, 0.0f, 1.0f);
+
+			output.sv_position = mul(projection_matrix, pos);
+
+			// Pass through all instance data and quad_pos for SDF evaluation in PS
+			output.quad_pos    = input.quad_pos;
+			output.inst_pos    = input.inst_pos;
+			output.inst_size   = input.inst_size;
+			output.inst_rot    = input.inst_rot;
+			output.inst_stroke = input.inst_stroke;
+			output.inst_clr    = input.inst_clr;
+			output.inst_type   = input.inst_type;
+
+			return output;
+		}
     )";
 
 		const std::string m_pixel_shader_str = R"(
-        struct VS_OUTPUT {
-            float4 position : SV_POSITION;
-            float2 uv : TEXCOORD0;
-            float4 color : COLOR;
-        };
+        struct PS_INPUT
+		{
+			float4 sv_position : SV_POSITION;
+			float2 quad_pos    : TEXCOORD0; // [-0.5, -0.5] to [+0.5, +0.5] from unit quad
+			float2 inst_pos    : TEXCOORD1; // shape_instance.pos
+			float2 inst_size   : TEXCOORD2; // shape_instance.size
+			float  inst_rot    : TEXCOORD3; // shape_instance.rotation
+			float  inst_stroke : TEXCOORD4; // shape_instance.stroke_width
+			float4 inst_clr    : TEXCOORD5; // shape_instance.clr (RGBA, 0..1)
+			uint   inst_type   : TEXCOORD6; // shape_instance.shape_type
+		};
 
-        float4 PSMain(VS_OUTPUT input) : SV_TARGET {
-            return input.color;
-        }
-    )";
+		// Signed distance to axis-aligned box
+		float sdBox(float2 p, float2 halfSize)
+		{
+			float2 d = abs(p) - halfSize;
+			return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+		}
 
+		// Signed distance to circle
+		float sdCircle(float2 p, float radius)
+		{
+			return length(p) - radius;
+		}
 
-		const std::string m_pixel_border_shader_str = R"(
-        struct VS_OUTPUT {
-            float4 position : SV_POSITION;
-            float2 uv : TEXCOORD0;
-            float4 color : COLOR;
-        };
+		// Signed distance to line segment (capsule)
+		float sdLine(float2 p, float2 a, float2 b, float thickness)
+		{
+			float2 pa = p - a, ba = b - a;
+			float h = saturate(dot(pa, ba) / dot(ba, ba));
+			return length(pa - ba * h) - thickness * 0.5;
+		}
 
-        float4 PSMainWithBorder(VS_OUTPUT input) : SV_TARGET {
-            float4 color = input.color;
-            float2 uv = input.uv;
+		float4 PSMain(PS_INPUT input) : SV_TARGET
+		{
+			float2 local = input.quad_pos;
 
-            static const float BORDER_THICKNESS = 0.1f;
+			// Apply rotation for quads
+			if (input.inst_type == 0 || input.inst_type == 1) {
+				float s = sin(input.inst_rot), c = cos(input.inst_rot);
+				local = float2(c * local.x - s * local.y, s * local.x + c * local.y);
+			}
 
-            float fade_x = smoothstep(0.0f, BORDER_THICKNESS, min(uv.x, 1.0f - uv.x));
-            float fade_y = smoothstep(0.0f, BORDER_THICKNESS, min(uv.y, 1.0f - uv.y));
-            float fade = fade_x * fade_y;
+			float dist = 0.0;
+			float alpha = 1.0;
 
-            color.rgb *= fade;
-            return color;
-        }
-    )";
+			if (input.inst_type == 0) { // Quad
+				dist = sdBox(local, input.inst_size);
+				alpha = smoothstep(0.0, fwidth(dist), -dist);
+			}
+			else if (input.inst_type == 1) { // Quad outline
+				dist = sdBox(local, input.inst_size);
+				alpha = smoothstep(input.inst_stroke * 0.5, input.inst_stroke * 0.5 + fwidth(dist), abs(dist));
+			}
+			else if (input.inst_type == 2) { // Circle
+				dist = sdCircle(local, input.inst_size.x);
+				alpha = smoothstep(0.0, fwidth(dist), -dist);
+			}
+			else if (input.inst_type == 3) { // Circle outline
+				dist = sdCircle(local, input.inst_size.x);
+				alpha = smoothstep(input.inst_stroke * 0.5, input.inst_stroke * 0.5 + fwidth(dist), abs(dist));
+			}
+			else if (input.inst_type == 4) { // Line
+				// pos = start, size = end
+				dist = sdLine(local, input.inst_pos, input.inst_size, input.inst_stroke);
+				alpha = smoothstep(0.0, fwidth(dist), -dist);
+			}
 
-		const std::string m_pixel_textured_shader_str = R"(
-        Texture2D gui_texture : register(t0);
-        SamplerState gui_sampler : register(s0);
-
-        struct VS_OUTPUT {
-            float4 position : SV_POSITION;
-            float2 uv : TEXCOORD0;
-            float4 color : COLOR;
-        };
-
-        float4 PSMainTextured(VS_OUTPUT input) : SV_TARGET {
-            float4 tex_color = gui_texture.Sample(gui_sampler, input.uv);
-            return tex_color * input.color;
-        }
+			float4 outColor = input.inst_clr;
+			outColor.a *= alpha;
+			return outColor;
+		}
     )";
 	};
 }

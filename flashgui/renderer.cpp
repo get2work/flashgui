@@ -100,45 +100,38 @@ void c_renderer::resize_frame() {
 }
 
 void c_renderer::begin_frame() {
-	frame_resource& fr = m_frame_resources[m_frame_index];
+    frame_resource& fr = m_frame_resources[m_frame_index];
 
-	m_dx.srv->begin_frame(m_frame_index);
+    m_dx.srv->begin_frame(m_frame_index);
 
-	if (m_pending_resize) {
-		fr.signal(m_dx.cmd_queue);
-		fr.wait_for_gpu();
-		resize_frame();
-		return;
-	}
+    if (m_pending_resize) {
+        fr.signal(m_dx.cmd_queue);
+        fr.wait_for_gpu();
+        resize_frame();
+        return;
+    }
 
-	// wait for the GPU to finish the previous frame
-	fr.wait_for_gpu();
+    fr.wait_for_gpu();
+    fr.reset_upload_cursor();
+    fr.reset(m_dx.pso_triangle);
 
-	// reset the upload cursor, cmd allocator, and cmd list
-	fr.reset_upload_cursor();
-	fr.reset(m_dx.pso_triangle);
+    auto& cmd = fr.command_list;
 
-	auto& cmd = fr.command_list;
+    cmd->SetGraphicsRootSignature(m_dx.root_sig.Get());
+    fr.cb_gpu_va = fr.push_cb(&m_transform_cb, sizeof(m_transform_cb));
+    cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
+    cmd->RSSetViewports(1, &m_viewport);
+    cmd->RSSetScissorRects(1, &m_scissor_rect);
 
-	// set the graphics root signature and upload the transform constant buffer
-	cmd->SetGraphicsRootSignature(m_dx.root_sig.Get());
-	fr.cb_gpu_va = fr.push_cb(&m_transform_cb, sizeof(m_transform_cb));
+    D3D12_RESOURCE_BARRIER to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_dx.get_back_buffer(m_frame_index).Get(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET
+    );
+    cmd->ResourceBarrier(1, &to_rtv);
 
-
-	cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
-	cmd->RSSetViewports(1, &m_viewport);
-	cmd->RSSetScissorRects(1, &m_scissor_rect);
-
-	D3D12_RESOURCE_BARRIER to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_dx.get_back_buffer(m_frame_index).Get(),
-		D3D12_RESOURCE_STATE_PRESENT,
-		D3D12_RESOURCE_STATE_RENDER_TARGET
-	);
-
-	cmd->ResourceBarrier(1, &to_rtv);
-
-	auto rtv_handle = m_dx.get_rtv_handle(m_frame_index);
-	cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+    auto rtv_handle = m_dx.get_rtv_handle(m_frame_index);
+    cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
 }
 
 void c_renderer::end_frame() {
@@ -149,6 +142,35 @@ void c_renderer::end_frame() {
 
 	frame_resource& fr = m_frame_resources[m_frame_index];
 	auto& cmd = fr.command_list;
+
+	if (!instances.empty()) {
+		// Upload instance data
+		D3D12_GPU_VIRTUAL_ADDRESS instance_gpu_va = fr.push_bytes(
+			instances.data(),
+			instances.size() * sizeof(shape_instance),
+			16
+		);
+
+		// Prepare vertex buffer views
+		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
+		vbv_inst.BufferLocation = instance_gpu_va;
+		vbv_inst.SizeInBytes = static_cast<UINT>(instances.size() * sizeof(shape_instance));
+		vbv_inst.StrideInBytes = sizeof(shape_instance);
+
+		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { m_dx.m_quad_vbv, vbv_inst };
+		cmd->IASetVertexBuffers(0, 2, vbvs);
+
+		// Index buffer for unit quad
+		cmd->IASetIndexBuffer(&m_dx.m_quad_ibv);
+		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		// Draw all instances
+		cmd->DrawIndexedInstanced(
+			6, // 6 indices for two triangles (unit quad)
+			static_cast<UINT>(instances.size()), // instance count
+			0, 0, 0
+		);
+	}
 
 	// Transition back to present
 	D3D12_RESOURCE_BARRIER to_present = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -176,6 +198,20 @@ void c_renderer::end_frame() {
 	// increment the frame index
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 	fr.signal(m_dx.cmd_queue);
+
+	instances.clear();
+}
+
+void c_renderer::add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
+	shape_instance inst;
+	inst.pos = pos;           // Center position of the quad
+	inst.size = size;          // Half-size of the quad (width/2, height/2)
+	inst.rotation = rotation;      // Rotation in radians
+	inst.stroke_width = outline_width;          // Filled quad, no outline
+	inst.clr = clr;           // RGBA color (0..1)
+	inst.shape_type = 0;             // 0 = filled quad
+
+	instances.push_back(inst);
 }
 
 LRESULT c_renderer::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {

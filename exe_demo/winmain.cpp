@@ -46,7 +46,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 
 		fgui::render->begin_frame();
 		//draw
-
+		fgui::render->add_quad({ 200.f, 200.f }, { 100.f, 100.f }, { 1.f, 1.f, 1.f, 1.f });
 		fgui::render->end_frame();
 	}
 
