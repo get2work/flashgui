@@ -75,9 +75,8 @@ void c_renderer::resize_frame() {
 		std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
 	}
 
-	for (int i = 0; i < target_buffer_count; ++i) {
-		m_frame_resources[i].initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
-	}
+	for (auto& frame : m_frame_resources)
+		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
 
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);
@@ -241,3 +240,47 @@ void c_renderer::add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, Direct
 	instances.push_back(inst);
 }
 
+void c_renderer::add_quad_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float width, float rotation) {
+	if (process->needs_resize())
+		return;
+
+	shape_instance inst;
+	inst.pos = pos;
+	inst.size = size;
+	inst.clr = clr;
+	inst.stroke_width = width;
+	inst.rotation = rotation;
+	inst.shape_type = shape_type::quad_outline;
+
+	instances.push_back(inst);
+}
+
+void c_renderer::add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	if (process->needs_resize())
+		return;
+
+	shape_instance inst;
+	inst.pos = pos;
+	inst.size = size;
+	inst.clr = clr;
+	inst.rotation = angle;
+	inst.stroke_width = outline_width;
+	inst.shape_type = shape_type::circle;
+
+	instances.push_back(inst);
+}
+
+void c_renderer::add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	if (process->needs_resize())
+		return;
+
+	shape_instance inst;
+	inst.pos = pos;
+	inst.size = size;
+	inst.rotation = angle;
+	inst.clr = clr;
+	inst.stroke_width = outline_width;
+	inst.shape_type = shape_type::circle_outline;
+
+	instances.push_back(inst);
+}

@@ -46,14 +46,18 @@ namespace fgui {
 
 		//draw functions
 		void add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
+		void add_quad_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
 		void add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width = 1.f);
+		void add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
+		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
+
 	private:
 
 		enum shape_type : int {
 			quad = 0,
-			quadoutline = 1,
+			quad_outline = 1,
 			circle = 2,
-			circleoutline = 3,
+			circle_outline = 3,
 			line = 4
 		};
 

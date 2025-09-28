@@ -47,6 +47,15 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->begin_frame();
 		//draw
 		fgui::render->add_quad({ 0.f, 0.f }, { 100.f, 100.f }, { 1.f, 0.f, 1.f, 1.f });
+
+		//line
+		fgui::render->add_line({ 100.f, 100.f }, { 300.f, 300.f }, { 1.f, 1.f, 1.f, 1.f }, 2.f);
+
+		//quad outline
+		fgui::render->add_quad_outline({ 300.f, 300.f }, { 100.f, 100.f }, { 1.f, 1.f, 1.f, 1.f }, 2.f);
+		fgui::render->add_circle({ 300.f, 100.f }, { 100.f, 100.f }, { 0.f, 0.f, 1.f, 1.f }, 1.f);
+		fgui::render->add_circle_outline({ 300.f, 0.f }, { 100.f, 100.f }, { 0.f, 1.f, 1.f, 1.f }, 1.f);
+
 		fgui::render->end_frame();
 	}
 

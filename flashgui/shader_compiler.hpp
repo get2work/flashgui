@@ -223,64 +223,62 @@ namespace fgui {
 		const std::string m_vertex_shader_str = R"(
 		cbuffer TransformCB : register(b0)
 		{
-		float4x4 projection_matrix;
+			float4x4 projection_matrix;
 		};
 
 		struct VS_INPUT
 		{
-		float2 quad_pos   : POSITION;   // [0,0] to [1,1]
-		float2 inst_pos   : TEXCOORD1;  // start pos
-		float2 inst_size  : TEXCOORD2;  // size (full extents)
-		float  inst_rot   : TEXCOORD3;  // radians
-		float  inst_stroke: TEXCOORD4;  // stroke
-		float4 inst_clr   : TEXCOORD5;  // RGBA
-		uint   inst_type  : TEXCOORD6;  // shape_type
+			float2 quad_pos   : POSITION;   // [0,0] to [1,1]
+			float2 inst_pos   : TEXCOORD1;  // start pos
+			float2 inst_size  : TEXCOORD2;  // size (full extents)
+			float  inst_rot   : TEXCOORD3;  // radians
+			float  inst_stroke: TEXCOORD4;  // stroke
+			float4 inst_clr   : TEXCOORD5;  // RGBA
+			uint   inst_type  : TEXCOORD6;  // shape_type
 		};
 
 		struct VS_OUTPUT
 		{
-		float4 sv_position : SV_POSITION;
-		float2 quad_pos    : TEXCOORD0;
-		float2 inst_pos    : TEXCOORD1;
-		float2 inst_size   : TEXCOORD2;
-		float  inst_rot    : TEXCOORD3;
-		float  inst_stroke : TEXCOORD4;
-		float4 inst_clr    : TEXCOORD5;
-		uint   inst_type   : TEXCOORD6;
+			float4 sv_position : SV_POSITION;
+			float2 quad_pos    : TEXCOORD0;
+			float2 inst_pos    : TEXCOORD1;
+			float2 inst_size   : TEXCOORD2;
+			float  inst_rot    : TEXCOORD3;
+			float  inst_stroke : TEXCOORD4;
+			float4 inst_clr    : TEXCOORD5;
+			uint   inst_type   : TEXCOORD6;
 		};
 
 		VS_OUTPUT VSMain(VS_INPUT input)
 		{
-		VS_OUTPUT output;
+			VS_OUTPUT output;
 
-		float2 local = input.quad_pos * input.inst_size;
-		float2 world_pos = input.inst_pos + local;
+			float2 local = input.quad_pos * input.inst_size;
+			float2 world_pos = input.inst_pos + local;
 
-		// Rotation, always about center (for quad/circle): unless line/box wants origin.
-		if (input.inst_rot != 0.0f && input.inst_type >= 2) // circles rotate about center
-		{
-		float2 center = input.inst_pos + 0.5f * input.inst_size;
-		float2 pos_rel = world_pos - center;
-		float s = sin(input.inst_rot), c = cos(input.inst_rot);
-		pos_rel = float2(c * pos_rel.x - s * pos_rel.y, s * pos_rel.x + c * pos_rel.y);
-		world_pos = center + pos_rel;
+			// Rotation, always about center (for quad/circle): unless line/box wants origin.
+			if (input.inst_rot != 0.0f && input.inst_type >= 2) // circles rotate about center
+			{
+				float2 center = input.inst_pos + 0.5f * input.inst_size;
+				float2 pos_rel = world_pos - center;
+				float s = sin(input.inst_rot), c = cos(input.inst_rot);
+				pos_rel = float2(c * pos_rel.x - s * pos_rel.y, s * pos_rel.x + c * pos_rel.y);
+				world_pos = center + pos_rel;
+			}
+
+			float4 pos = float4(world_pos, 0.0f, 1.0f);
+			output.sv_position = mul(projection_matrix, pos);
+
+			output.quad_pos    = input.quad_pos;
+			output.inst_pos    = input.inst_pos;
+			output.inst_size   = input.inst_size;
+			output.inst_rot    = input.inst_rot;
+			output.inst_stroke = input.inst_stroke;
+			output.inst_clr    = input.inst_clr;
+			output.inst_type   = input.inst_type;
+
+			return output;
 		}
-
-		float4 pos = float4(world_pos, 0.0f, 1.0f);
-		output.sv_position = mul(projection_matrix, pos);
-
-		output.quad_pos    = input.quad_pos;
-		output.inst_pos    = input.inst_pos;
-		output.inst_size   = input.inst_size;
-		output.inst_rot    = input.inst_rot;
-		output.inst_stroke = input.inst_stroke;
-		output.inst_clr    = input.inst_clr;
-		output.inst_type   = input.inst_type;
-
-		return output;
-		}
-
-
 		)";
 
 		const std::string m_pixel_shader_str = R"(
@@ -308,10 +306,11 @@ namespace fgui {
 			return length(p) - radius;
 		}
 
-		float sdLine(float2 p, float2 a, float2 b, float thickness)
+		float sdLine(float2 p, float2 start, float2 end, float thickness)
 		{
-			float2 pa = p - a, ba = b - a;
-			float h = saturate(dot(pa, ba) / dot(ba, ba));
+			float2 pa = p - start, ba = end - start;
+			float ba_dot = dot(ba, ba);
+			float h = ba_dot > 0.0 ? saturate(dot(pa, ba) / ba_dot) : 0.0;
 			return length(pa - ba * h) - thickness * 0.5;
 		}
 
@@ -321,20 +320,25 @@ namespace fgui {
 			float dist = 0.0;
 			float alpha = 1.0;
 
-			if (input.inst_type == 2 || input.inst_type == 3) {
+			if (input.inst_type == 2) {
 				// Circle/outline, centered
 				float2 center = 0.5f * input.inst_size;
 				float2 p = local - center;
-				if (input.inst_rot != 0.0f) {
-					float s = sin(input.inst_rot), c = cos(input.inst_rot);
-					p = float2(c * p.x - s * p.y, s * p.x + c * p.y);
-				}
 				dist = sdCircle(p, center.x);
-				alpha = (input.inst_type == 2)
-					? smoothstep(0.0, fwidth(dist), -dist)
-					: smoothstep(input.inst_stroke * 0.5, input.inst_stroke * 0.5 + fwidth(dist), abs(dist));
+				alpha = smoothstep(0.0, fwidth(dist), -dist);
 			}
-			else if (input.inst_type == 0 || input.inst_type == 1) {
+			else if (input.inst_type == 3) { // Circle outline
+				float2 center = 0.5f * input.inst_size;
+				float2 p = local - center;
+				float dist = sdCircle(p, center.x);
+				float inner = input.inst_stroke * 0.5;
+				float aa = 1.0; // Fixed anti-aliasing width in pixels
+
+				// Only the shell "ring" (outline) is visible
+				alpha = smoothstep(inner, inner + aa, abs(dist));
+				alpha = 1.0f - alpha; // Invert so only outline, not filled!
+			}
+			else if (input.inst_type == 0) {
 				// Box/outline, not centered
 				float2 p = local;
 				dist = sdBox(p, input.inst_size);
@@ -342,10 +346,19 @@ namespace fgui {
 					? smoothstep(0.0, fwidth(dist), dist)
 					: smoothstep(input.inst_stroke * 0.5, input.inst_stroke * 0.5 + fwidth(dist), abs(dist));
 			}
-			else if (input.inst_type == 4) {
-				// Line: from (0,0) to (size.x, size.y)
+			else if (input.inst_type == 1) { // Quad outline
 				float2 p = local;
-				dist = sdLine(p, float2(0.0, 0.0), input.inst_size, input.inst_stroke);
+				// Center the SDF for edge-aware outlines:
+				float2 half_size = input.inst_size * 0.5;
+				float2 d = abs(p - half_size) - half_size;
+				float dist = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+				float edge = input.inst_stroke * 0.5;
+				alpha = smoothstep(edge, edge + fwidth(dist), abs(dist));
+				alpha = 1.0 - alpha; // Only the shell is visible
+			}
+			else if (input.inst_type == 4) {
+				// Line: input.inst_pos to (size.x, size.y)
+				dist = sdLine(input.sv_position.xy, input.inst_pos, input.inst_size, input.inst_stroke);
 				alpha = smoothstep(0.0, fwidth(dist), -dist);
 			}
 
