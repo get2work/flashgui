@@ -19,11 +19,12 @@ namespace fgui {
 
 	// Vertex structure: float2 position
 	static const float quad_vertices[4][2] = {
-		{ -0.5f, -0.5f }, // bottom-left
-		{  0.5f, -0.5f }, // bottom-right
-		{  0.5f,  0.5f }, // top-right
-		{ -0.5f,  0.5f }  // top-left
+		{ 0.0f, 0.0f }, // bottom-left
+		{ 1.0f, 0.0f }, // bottom-right
+		{ 1.0f, 1.0f }, // top-right
+		{ 0.0f, 1.0f }  // top-left
 	};
+
 
 	static const uint16_t quad_indices[6] = {
 		0, 1, 2, // first triangle
@@ -59,7 +60,7 @@ namespace fgui {
 
 		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
 
-		void create_device_and_swapchain(const process_data& data);
+		void create_device_and_swapchain();
 		void create_rtv_heap();
 		void create_srv_heap();
 		void create_backbuffers();
@@ -69,7 +70,7 @@ namespace fgui {
 		
 		void create_pipeline();
 		void initialize_hooked();
-		void initialize_standalone(const process_data& data, const uint32_t& target_buf_count);
+		void initialize_standalone(const uint32_t& target_buf_count);
 
 		ComPtr<ID3D12Resource> get_back_buffer(uint32_t index) const {
 			if (index >= back_buffers.size()) return nullptr;

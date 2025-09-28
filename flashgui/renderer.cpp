@@ -5,9 +5,9 @@
 using namespace fgui;
 
 LRESULT CALLBACK hk::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	c_renderer* self = reinterpret_cast<c_renderer*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-	if (self && self->window_proc(hwnd, msg, wparam, lparam)) {
-		return true;
+	if (process) {
+		if (process->window_proc(hwnd, msg, wparam, lparam))
+			return true;
 	}
 	return DefWindowProcA(hwnd, msg, wparam, lparam);
 }
@@ -19,21 +19,21 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 		m_dx.swapchain = swapchain;
 		m_dx.cmd_queue = cmd_queue;
 
-		if (!m_proc.window.handle) {
+		if (!process->window.handle) {
 			throw std::runtime_error("Window handle cannot be null in hooked mode");
 		}
 
 		m_dx.initialize_hooked();
 	} else {
-		m_dx.initialize_standalone(m_proc, target_buffer_count);
+		m_dx.initialize_standalone(target_buffer_count);
 	}
 
 	m_frame_resources.resize(m_dx.buffer_count);
 
 	m_dx.create_pipeline();
 
-	const float width = static_cast<float>(m_proc.window.get_width());
-	const float height = static_cast<float>(m_proc.window.get_height());
+	const float width = static_cast<float>(process->window.get_width());
+	const float height = static_cast<float>(process->window.get_height());
 	
 	m_viewport = {
 		0.0f, 0.0f,
@@ -43,8 +43,8 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 
 	m_scissor_rect = {
 		0l, 0l,
-		m_proc.window.get_width(),
-		m_proc.window.get_height()
+		process->window.get_width(),
+		process->window.get_height()
 	};
 
 	// Initialize frame resources
@@ -66,50 +66,54 @@ void c_renderer::resize_frame() {
 		fr.release(); // Reset command allocators and command lists
 	}
 
+	long width = process->window.get_width(), height = process->window.get_height();
+
 	try {
-		m_dx.resize_backbuffers(m_proc.window.get_width(), m_proc.window.get_height());
+		m_dx.resize_backbuffers(width, height);
 	}
 	catch (const std::exception& e) {
 		std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
 	}
 
-	for (auto& fr : m_frame_resources) {
-		fr.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
+	for (int i = 0; i < target_buffer_count; ++i) {
+		m_frame_resources[i].initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
 	}
 
-	const float width = static_cast<float>(m_proc.window.get_width());
-	const float height = static_cast<float>(m_proc.window.get_height());
+	const float fwidth = static_cast<float>(width);
+	const float fheight = static_cast<float>(height);
 	
 	m_viewport = {
 		0.0f, 0.0f,
-		width, height,
+		fwidth, fheight,
 		0.0f, 1.0f
 	};
 
 	m_scissor_rect = {
 		0l, 0l,
-		m_proc.window.get_width(),
-		m_proc.window.get_height()
+		width,
+		height
 	};
 
 	m_transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
-		0.0f, width,   // left, right
-		height, 0.0f, // bottom, top
+		0.0f, fwidth,   // left, right
+		fheight, 0.0f, // bottom, top
 		0.0f, 1.0f   // near, far
 	);
+
+	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
 
 void c_renderer::begin_frame() {
     frame_resource& fr = m_frame_resources[m_frame_index];
 
-    m_dx.srv->begin_frame(m_frame_index);
-
-    if (m_pending_resize) {
+    if (process->needs_resize()) {
         fr.signal(m_dx.cmd_queue);
         fr.wait_for_gpu();
         resize_frame();
         return;
     }
+
+	m_dx.srv->begin_frame(m_frame_index);
 
     fr.wait_for_gpu();
     fr.reset_upload_cursor();
@@ -135,8 +139,8 @@ void c_renderer::begin_frame() {
 }
 
 void c_renderer::end_frame() {
-	if (m_pending_resize) {
-		m_pending_resize = false; // Reset the resize flag
+	if (process->needs_resize()) {
+		process->resize_complete(); // Reset the resize flag
 		return;
 	}
 
@@ -191,8 +195,13 @@ void c_renderer::end_frame() {
 	m_dx.cmd_queue->ExecuteCommandLists(1, cmd_lists);
 
 	// present the swapchain
-	if (FAILED(m_dx.swapchain->Present(1, 0))) {
-		throw std::runtime_error("Failed to present swapchain");
+	HRESULT hr = m_dx.swapchain->Present(1, 0);
+	if (FAILED(hr)) {
+		std::cerr << "Failed to present swapchain HRSESULT:" << hr << std::endl;
+		if (m_dx.device) {
+			HRESULT reason = m_dx.device->GetDeviceRemovedReason();
+			std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
+		}
 	}
 
 	// increment the frame index
@@ -203,54 +212,32 @@ void c_renderer::end_frame() {
 }
 
 void c_renderer::add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
+	if (process->needs_resize())
+		return;
+
 	shape_instance inst;
-	inst.pos = pos;           // Center position of the quad
-	inst.size = size;          // Half-size of the quad (width/2, height/2)
+	inst.pos = pos;           // Beginning position
+	inst.size = size;          // Full width and height
 	inst.rotation = rotation;      // Rotation in radians
 	inst.stroke_width = outline_width;          // Filled quad, no outline
 	inst.clr = clr;           // RGBA color (0..1)
-	inst.shape_type = 0;             // 0 = filled quad
+	inst.shape_type = shape_type::quad;             // 0 = filled quad
 
 	instances.push_back(inst);
 }
 
-LRESULT c_renderer::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	switch (msg) {
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-	case WM_SIZE:
-		// Handle resizing if needed
-		return 0;
-	case WM_KEYDOWN:
-		// Handle key down events if needed
-		return 0;
-	case WM_KEYUP:
-		// Handle key up events if needed
-		return 0;
-	case WM_CHAR:
-		// Handle character input if needed
-		return 0;
-	case WM_SETFOCUS:
-		// Handle focus events if needed
-		return 0;
-	case WM_KILLFOCUS:
-		// Handle focus loss events if needed
-		return 0;
-	case WM_LBUTTONDOWN:
-		// Handle left mouse button down events if needed
-		return 0;
-	case WM_RBUTTONDOWN:
-		// Handle right mouse button down events if needed
-		return 0;
-	case WM_MOUSEMOVE:
-		// Handle mouse move events if needed
-		return 0;
-	case WM_CLOSE:
-		// Handle close events if needed
-		return 0;
+void c_renderer::add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width) {
+	if (process->needs_resize())
+		return;
 
-	default:
-		return 0;
-	}
+	shape_instance inst;
+	inst.pos = start;
+	inst.size = end;
+	inst.rotation = 0;
+	inst.stroke_width = width;
+	inst.clr = clr;
+	inst.shape_type = shape_type::line;
+	
+	instances.push_back(inst);
 }
+

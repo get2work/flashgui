@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "include/flashgui.h"
 
-fgui::process_data::process_data(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
+fgui::c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
 	if (create_window) {
 		WNDCLASSEXA wc = {};
 		wc.cbSize = sizeof(WNDCLASSEXA);
 		wc.lpfnWndProc = fgui::hk::window_procedure; // Set the window procedure
-		wc.hInstance = h_instance ? h_instance : GetModuleHandle(nullptr); // Use provided instance handle or current module handle
+		wc.hInstance = m_hinstance ? m_hinstance : GetModuleHandle(nullptr); // Use provided instance handle or current module handle
 		wc.lpszClassName = "FlashGUIWindowClass"; // Set a class name for the window
 		wc.style = CS_HREDRAW | CS_VREDRAW; // Redraw on resize
 		wc.hCursor = LoadCursor(nullptr, IDC_ARROW); // Set the default cursor
@@ -35,8 +35,6 @@ fgui::process_data::process_data(bool create_window, DWORD pid, HINSTANCE module
 
 		GetClientRect(window.handle, &window.rect); // Get the client rectangle of the created window
 
-		SetWindowLongPtr(window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this)); // Set the user data to this instance
-
 		LONG ex_style = GetWindowLong(window.handle, GWL_EXSTYLE);
 		SetWindowLong(window.handle, GWL_EXSTYLE, ex_style | WS_EX_LAYERED);
 		SetLayeredWindowAttributes(window.handle, 0, 255, LWA_ALPHA); // Optional: use LWA_COLORKEY for full transparency
@@ -46,11 +44,11 @@ fgui::process_data::process_data(bool create_window, DWORD pid, HINSTANCE module
 	}
 	else if (!in_hwnd) {
 		EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL {
-			process_data* data = reinterpret_cast<process_data*>(lParam);
+			c_process* data = reinterpret_cast<c_process*>(lParam);
 			DWORD pid = 0;
 			GetWindowThreadProcessId(hwnd, &pid);
 
-			if (pid == data->dw_pid && !IsIconic(hwnd)) {
+			if (pid == data->get_pid() && !IsIconic(hwnd)) {
 				char class_name[256]{};
 				GetClassNameA(hwnd, class_name, sizeof(class_name));
 
@@ -67,4 +65,60 @@ fgui::process_data::process_data(bool create_window, DWORD pid, HINSTANCE module
 		}
 	}
 
+}
+
+
+LRESULT fgui::c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+	switch (msg) {
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	case WM_SIZE:
+	{
+		RECT new_rect = {};
+		if (GetClientRect(hwnd, &new_rect)) {
+			int new_width = new_rect.right - new_rect.left;
+			int new_height = new_rect.bottom - new_rect.top;
+			int old_width = window.get_width();
+			int old_height = window.get_height();
+
+			if (new_width != old_width || new_height != old_height) {
+				window.rect = new_rect;
+				m_needs_resize = true;
+			}
+		}
+
+		return 0;
+	}
+	case WM_KEYDOWN:
+		// Handle key down events if needed
+		return 0;
+	case WM_KEYUP:
+		// Handle key up events if needed
+		return 0;
+	case WM_CHAR:
+		// Handle character input if needed
+		return 0;
+	case WM_SETFOCUS:
+		// Handle focus events if needed
+		return 0;
+	case WM_KILLFOCUS:
+		// Handle focus loss events if needed
+		return 0;
+	case WM_LBUTTONDOWN:
+		// Handle left mouse button down events if needed
+		return 0;
+	case WM_RBUTTONDOWN:
+		// Handle right mouse button down events if needed
+		return 0;
+	case WM_MOUSEMOVE:
+		// Handle mouse move events if needed
+		return 0;
+	case WM_CLOSE:
+		// Handle close events if needed
+		return 0;
+
+	default:
+		return 0;
+	}
 }

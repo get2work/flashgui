@@ -24,6 +24,10 @@ namespace fgui {
 
 	class c_srv_allocator {
 	public:
+		~c_srv_allocator() {
+			reset();
+		}
+
 		void initialize(ComPtr<ID3D12Device> device, uint32_t num_descriptors, uint32_t buffer_count) {
 			if (!device) {
 				throw std::runtime_error("Device cannot be null");

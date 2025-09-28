@@ -32,15 +32,13 @@ namespace fgui {
 
 	class c_renderer {
 	public:
-		c_renderer(process_data procdata, D3D_FEATURE_LEVEL feature_lvl, UINT buffer_count)
-			: m_dx(), m_proc(procdata) {
+		c_renderer(D3D_FEATURE_LEVEL feature_lvl, UINT buffer_count) : m_dx() {
 			m_dx.buffer_count = buffer_count;
 			m_dx.feature_level = feature_lvl;
 		}
 		~c_renderer() = default;
 
 		void initialize(IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr);
-		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 		void resize_frame();
 		void begin_frame();
@@ -48,12 +46,19 @@ namespace fgui {
 
 		//draw functions
 		void add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
+		void add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width = 1.f);
 	private:
+
+		enum shape_type : int {
+			quad = 0,
+			quadoutline = 1,
+			circle = 2,
+			circleoutline = 3,
+			line = 4
+		};
 
 		std::vector<shape_instance> instances;
 
-		bool m_pending_resize = false; // Flag to indicate if a resize is pending
-		
 		uint32_t m_frame_index = 0; // Current frame index
 		
 		D3D12_VIEWPORT m_viewport = {}; // Viewport for rendering
@@ -67,8 +72,6 @@ namespace fgui {
 		std::vector<frame_resource> m_frame_resources; // Frame resources for command allocators and command lists
 		s_dxgicontext m_dx; // DXGI context containing factory, adapter, device, command queue, and swapchain
 		render_mode m_mode = render_mode::hooked; // Current rendering mode
-		process_data m_proc; // Information about the target process
-
 
 	};
 }

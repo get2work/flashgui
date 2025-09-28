@@ -2,27 +2,30 @@
 #include "include/flashgui.h"
 
 using Microsoft::WRL::ComPtr;
+
 namespace fgui {
 
 	//global definitions
 	std::unique_ptr<c_renderer> render = nullptr;
 	uint32_t target_buffer_count = 3;
+	std::unique_ptr<c_process> process;
 	//
 	bool initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
-		if (render) {
-			render->initialize(swapchain, cmd_queue);
-			return true; // Already initialized
-		}
-
-		// Standalone mode, create our renderer instance
-		render = std::make_unique<c_renderer>(process_data(), D3D_FEATURE_LEVEL_12_1, target_buffer_count);
-
 		if (!render) {
-			std::cerr << "[flashgui] Failed to create renderer instance" << std::endl;
-			return false; // Initialization failed
+			// Standalone mode, create our renderer instance
+			process = std::make_unique<c_process>();
+
+			render = std::make_unique<c_renderer>(D3D_FEATURE_LEVEL_12_1, target_buffer_count);
+
+			if (!render) {
+				std::cerr << "[flashgui] Failed to create renderer instance" << std::endl;
+				return false; // Initialization failed
+			}
 		}
 
 		render->initialize(swapchain, cmd_queue);
+
+		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
 
 		return true; // Initialization successful
 	}
@@ -34,7 +37,9 @@ namespace fgui {
 	};
 
 	hook_data hk::get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
-		process_data data = process_data(false, pid, module_handle, in_hwnd, in_rect);
+		process = std::make_unique<c_process>(false, pid, module_handle, in_hwnd, in_rect);
+		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(process.get()));
+
 		hook_data hookinfo = {};
 
 		ComPtr<IDXGIFactory7> dxgi_factory;
@@ -67,7 +72,6 @@ namespace fgui {
 			D3D_FEATURE_LEVEL_11_0
 		};
 
-
 		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
 		for (auto level : levels) {
 			hr = D3D12CreateDevice(adapter.Get(), level, IID_PPV_ARGS(&device));
@@ -95,7 +99,7 @@ namespace fgui {
 		*/
 		WNDCLASSA wc = {};
 		wc.lpfnWndProc = DefWindowProcA;
-		wc.hInstance = data.h_instance;
+		wc.hInstance = process->get_instance();
 		wc.lpszClassName = "XBox Game Bar";
 
 		RegisterClassA(&wc);
@@ -105,9 +109,9 @@ namespace fgui {
 			wc.lpszClassName,
 			"Overlay",
 			WS_POPUP,
-			data.window.get_posx(), data.window.get_posy(),
-			data.window.get_width(), data.window.get_height(),
-			nullptr, nullptr, data.h_instance, nullptr
+			process->window.get_posx(), process->window.get_posy(),
+			process->window.get_width(), process->window.get_height(),
+			nullptr, nullptr, process->get_instance(), nullptr
 		);
 
 		if (!hwnd_overlay) {
@@ -121,8 +125,8 @@ namespace fgui {
 		// Setup swapchain description
 		DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
 
-		swapchain_desc.Width = data.window.get_width(); // Set the width of the swapchain
-		swapchain_desc.Height = data.window.get_height(); // Set the height of the swapchain
+		swapchain_desc.Width = process->window.get_width(); // Set the width of the swapchain
+		swapchain_desc.Height = process->window.get_height(); // Set the height of the swapchain
 		swapchain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Set the format of the swapchain
 		swapchain_desc.Stereo = FALSE; // No stereo rendering
 		swapchain_desc.SampleDesc.Count = 1; // No multisampling
@@ -194,12 +198,12 @@ namespace fgui {
 
 		if (hwnd_overlay) {
 			DestroyWindow(hwnd_overlay);
-			UnregisterClassA("XBox Game Bar", data.h_instance);
+			UnregisterClassA("XBox Game Bar", process->get_instance());
 			hwnd_overlay = nullptr;
 		}
 
 		if (!render) {
-			render = std::make_unique<c_renderer>(data, feature_level, target_buffer_count);
+			render = std::make_unique<c_renderer>(feature_level, target_buffer_count);
 		}
 		
 		return hookinfo; // Return the hook data containing the command queue offset and function pointers

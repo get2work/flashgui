@@ -1,0 +1,6 @@
+# ninja log v6
+10	352	7806544365990275	CMakeFiles/DirectX-Guids.dir/src/dxguids.cpp.obj	5b0a942085d828d6
+7	475	7806544365970435	CMakeFiles/DirectX-Headers.dir/src/d3dx12_property_format_table.cpp.obj	fe83ef0bfe2172a6
+475	498	7806544370639305	DirectX-Headers.lib	fa07b2d7b5b6852b
+498	519	7806544370872526	DirectX-Guids.lib	6341c327d0eb6f09
+519	620	7806544371082501	CMakeFiles/install.util	5d291a881b946ddd

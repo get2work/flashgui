@@ -4,5 +4,5 @@ Port-Version: 1
 Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: 6022a3d5291782b57d31783ced99e1b22af57e0b31b0a49eb7a324766e14628d
+Abi: 1491ca8b30315994a3737dd5e573e55ab9044fbad1067038b6b9ed15e3500b39
 Description: DirectX Shader Compiler (LLVM/Clang)

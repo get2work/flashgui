@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "dxgicontext.h"
+#include "include/flashgui.h"
 
 using namespace fgui;
 
@@ -25,16 +26,16 @@ void s_dxgicontext::initialize_hooked() {
 	create_quad_buffers();
 }
 
-void s_dxgicontext::initialize_standalone(const process_data& data, const uint32_t& target_buf_count) {
+void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 	buffer_count = target_buf_count;
-	create_device_and_swapchain(data);
+	create_device_and_swapchain();
 	create_rtv_heap();
 	create_backbuffers();
 	create_srv_heap();
 	create_quad_buffers();
 }
 
-void s_dxgicontext::create_device_and_swapchain(const process_data& data) {
+void s_dxgicontext::create_device_and_swapchain() {
 	HRESULT hr = S_OK;
 
 	// Create DXGI factory
@@ -74,8 +75,8 @@ void s_dxgicontext::create_device_and_swapchain(const process_data& data) {
 
 	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
 	swapchain_desc.BufferCount = buffer_count; // Default buffer count
-	swapchain_desc.Width = data.window.get_width(); // Set the width of the swapchain
-	swapchain_desc.Height = data.window.get_height(); // Set the height of the swapchain
+	swapchain_desc.Width = process->window.get_width(); // Set the width of the swapchain
+	swapchain_desc.Height = process->window.get_height(); // Set the height of the swapchain
 	swapchain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Set the format of the swapchain
 	swapchain_desc.Stereo = FALSE; // No stereo rendering
 	swapchain_desc.SampleDesc.Count = 1; // No multisampling
@@ -90,7 +91,7 @@ void s_dxgicontext::create_device_and_swapchain(const process_data& data) {
 	ComPtr<IDXGISwapChain1> swapchain1;
 	hr = dxgi_factory->CreateSwapChainForHwnd(
 		cmd_queue.Get(), // Command queue for the swapchain
-		data.window.handle, // Handle to the overlay window
+		process->window.handle, // Handle to the overlay window
 		&swapchain_desc, // Swapchain description
 		nullptr, // No additional parameters
 		nullptr, // No restrict to output
@@ -100,7 +101,7 @@ void s_dxgicontext::create_device_and_swapchain(const process_data& data) {
 		throw std::runtime_error("Failed to create swapchain, HRESULT: " + std::to_string(hr));
 	}
 
-	hr = dxgi_factory->MakeWindowAssociation(data.window.handle, DXGI_MWA_NO_ALT_ENTER);
+	hr = dxgi_factory->MakeWindowAssociation(process->window.handle, DXGI_MWA_NO_ALT_ENTER);
 	if (FAILED(hr)) {
 		throw std::runtime_error("Failed to make window association, HRESULT: " + std::to_string(hr));
 	}
@@ -171,7 +172,7 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 	rtv_heap.Reset();
 
 	try {
-		HRESULT hr = swapchain->ResizeBuffers(buffer_count, width, height, format, 0);
+		HRESULT hr = swapchain->ResizeBuffers(buffer_count, width, height, format, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		if (FAILED(hr)) {
 			throw std::runtime_error("Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr));
 		}

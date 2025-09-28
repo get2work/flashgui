@@ -72,14 +72,14 @@ namespace fgui {
 				throw std::runtime_error("Failed to create fence");
 			}
 
+			create_upload_heap(device, heap_size);
+
 			fence_value = 0;
 			fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 			if (!fence_event) {
 				throw std::runtime_error("Failed to create fence event");
 			}
-
-			create_upload_heap(device, heap_size);
 		}
 
 		void create_upload_heap(ComPtr<ID3D12Device> device, size_t size) {
@@ -124,6 +124,10 @@ namespace fgui {
 
 			command_allocator.Reset();
 			command_list.Reset();
+			
+			upload_heap.Reset();
+			upload_ptr = nullptr;
+			cb_gpu_va = 0;
 
 			fence.Reset();
 			fence_value = 0;

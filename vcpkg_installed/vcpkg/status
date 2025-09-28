@@ -2,14 +2,14 @@ Package: vcpkg-cmake-config
 Version: 2024-05-23
 Architecture: x64-windows
 Multi-Arch: same
-Abi: 78b41bd34c45ed7e166b776e6f09d7ee5b76dbd0c12c0fcb38ddef43ca30fdbb
+Abi: 45e94b8900e86c55ae9b7dac5f44737dea16c9b80591453a7878840c70e14506
 Status: install ok installed
 
 Package: vcpkg-cmake
 Version: 2024-04-23
 Architecture: x64-windows
 Multi-Arch: same
-Abi: 86bf797056f8637ca7b6978f758b1bb6072ef88896f6beead197515701d29c13
+Abi: e0f5c7ffbb0cbae43a5c181fac193b9fa76c389f626ff8dc4c2bff8652592681
 Status: install ok installed
 
 Package: directx-dxc
@@ -18,7 +18,7 @@ Port-Version: 1
 Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: 6022a3d5291782b57d31783ced99e1b22af57e0b31b0a49eb7a324766e14628d
+Abi: 1491ca8b30315994a3737dd5e573e55ab9044fbad1067038b6b9ed15e3500b39
 Description: DirectX Shader Compiler (LLVM/Clang)
 Status: install ok installed
 
@@ -27,7 +27,7 @@ Version: 1.615.0
 Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: 14a3579ddb25337221167ca52642d7e2f969994fb1f48c55a0d189f320c6e609
+Abi: dac880d0eafc4f3460aae4674b98631276643c2c02adeb8116105f58c1814dc7
 Description: Official DirectX 12 Headers
 Status: install ok installed
 
@@ -36,7 +36,7 @@ Version: jun10
 Port-Version: 8
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: beb397179a8b430db99b57fc43a52d1f0e47f08aecaad1ed595837fb664dc1c5
+Abi: 0ffae27f0c47db5410e9028c33e66d50dc2744a776798542c413984371c7181d
 Description: Legacy DirectX SDK
 Status: install ok installed
 
@@ -59,7 +59,7 @@ Version: 2024-07-29
 Port-Version: 1
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: 3d9415d22384b1733bf7bb0ebec3eb3ee51a54e1470c4c7db405b2528daaa2eb
+Abi: f2b9da3a0e9d49a4426408d15d56312df07ef9285c9bc80fbe89a86e66368ef2
 Description: public domain header-only libraries
 Status: install ok installed
 

@@ -32,9 +32,4 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 
-#pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxcompiler.lib")
-
 #endif //PCH_H

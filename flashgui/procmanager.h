@@ -7,9 +7,17 @@
 #include <wrl/client.h>
 
 namespace fgui {
-	struct process_data {
-		DWORD dw_pid = 0;
-		HINSTANCE h_instance = nullptr;
+	class c_process {
+	public:
+		c_process(bool create_window = true,
+			DWORD pid = GetCurrentProcessId(),
+			HINSTANCE module_handle = GetModuleHandleA(nullptr),
+			HWND in_hwnd = nullptr, RECT in_rect = RECT{});
+
+		bool needs_resize() const { return m_needs_resize; }
+		void resize_complete() { m_needs_resize = false; }
+		HINSTANCE get_instance() const { return m_hinstance; }
+		DWORD get_pid() const { return m_pid; }
 
 		struct window_info {
 			HWND handle = nullptr;
@@ -29,10 +37,12 @@ namespace fgui {
 			}
 		} window;
 
-		process_data(bool create_window = true,
-			DWORD pid = GetCurrentProcessId(),
-			HINSTANCE module_handle = GetModuleHandleA(nullptr),
-			HWND in_hwnd = nullptr, RECT in_rect = RECT{});
+		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	private:
+
+		DWORD m_pid = 0;
+		HINSTANCE m_hinstance = nullptr;
+		bool m_needs_resize = false;
 	};
 
 	struct hook_data {

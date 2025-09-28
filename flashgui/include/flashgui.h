@@ -28,9 +28,10 @@ namespace fgui {
 		* @throws std::runtime_error if the process cannot be analyzed or if the swapchain cannot be found.
 		*/
 		hook_data get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd = nullptr, RECT in_rect = RECT{});
-
+	
 	}
 
 	extern std::unique_ptr<c_renderer> render;
 	extern uint32_t target_buffer_count; // Default buffer count for swapchain
+	extern std::unique_ptr<c_process> process; // Information about the target process
 }
