@@ -49,7 +49,7 @@ namespace fgui {
 		void add_quad_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
 		void add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width = 1.f);
 		void add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
-		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
+		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
 
 	private:
 

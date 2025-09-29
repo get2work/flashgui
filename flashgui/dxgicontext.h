@@ -58,6 +58,9 @@ namespace fgui {
 		D3D12_VERTEX_BUFFER_VIEW m_quad_vbv = {};
 		D3D12_INDEX_BUFFER_VIEW  m_quad_ibv = {};
 
+		DXGI_FORMAT dxgiformat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		UINT sample_count = 1; // Desired MSAA level (e.g., 2, 4, 8)
+		UINT num_quality_levels = 0;
 		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
 
 		void create_device_and_swapchain();

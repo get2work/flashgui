@@ -327,16 +327,15 @@ namespace fgui {
 				dist = sdCircle(p, center.x);
 				alpha = smoothstep(0.0, fwidth(dist), -dist);
 			}
-			else if (input.inst_type == 3) { // Circle outline
+			else if (input.inst_type == 3) {
+				//circle outline
 				float2 center = 0.5f * input.inst_size;
 				float2 p = local - center;
 				float dist = sdCircle(p, center.x);
 				float inner = input.inst_stroke * 0.5;
-				float aa = 1.0; // Fixed anti-aliasing width in pixels
-
-				// Only the shell "ring" (outline) is visible
+				float aa = fwidth(dist);
 				alpha = smoothstep(inner, inner + aa, abs(dist));
-				alpha = 1.0f - alpha; // Invert so only outline, not filled!
+				alpha = 1.0f - alpha;
 			}
 			else if (input.inst_type == 0) {
 				// Box/outline, not centered
@@ -365,7 +364,7 @@ namespace fgui {
 			float4 outColor = input.inst_clr;
 			outColor.a *= alpha;
 			return outColor;
-			}
+		}
 
 		)";
 	};

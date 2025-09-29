@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "include/flashgui.h"
 
-fgui::c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
+using namespace fgui;
+
+c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
 	if (create_window) {
 		WNDCLASSEXA wc = {};
 		wc.cbSize = sizeof(WNDCLASSEXA);
-		wc.lpfnWndProc = fgui::hk::window_procedure; // Set the window procedure
+		wc.lpfnWndProc = hk::window_procedure; // Set the window procedure
 		wc.hInstance = m_hinstance ? m_hinstance : GetModuleHandle(nullptr); // Use provided instance handle or current module handle
 		wc.lpszClassName = "FlashGUIWindowClass"; // Set a class name for the window
 		wc.style = CS_HREDRAW | CS_VREDRAW; // Redraw on resize
@@ -67,8 +69,7 @@ fgui::c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handl
 
 }
 
-
-LRESULT fgui::c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	switch (msg) {
 	case WM_DESTROY:
 		PostQuitMessage(0);

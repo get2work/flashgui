@@ -28,7 +28,14 @@ void s_dxgicontext::initialize_hooked() {
 
 void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 	buffer_count = target_buf_count;
-	create_device_and_swapchain();
+
+	try {
+		create_device_and_swapchain();
+	}
+	catch (const std::exception& e) {
+		std::cerr << "[flashgui] Error during device and swapchain creation: " << e.what() << std::endl;
+	
+	}
 	create_rtv_heap();
 	create_backbuffers();
 	create_srv_heap();
@@ -77,16 +84,15 @@ void s_dxgicontext::create_device_and_swapchain() {
 	swapchain_desc.BufferCount = buffer_count; // Default buffer count
 	swapchain_desc.Width = process->window.get_width(); // Set the width of the swapchain
 	swapchain_desc.Height = process->window.get_height(); // Set the height of the swapchain
-	swapchain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Set the format of the swapchain
+	swapchain_desc.Format = dxgiformat; // Set the format of the swapchain
 	swapchain_desc.Stereo = FALSE; // No stereo rendering
-	swapchain_desc.SampleDesc.Count = 1; // No multisampling
-	swapchain_desc.SampleDesc.Quality = 0; // No multisampling quality
+	swapchain_desc.SampleDesc.Count = sample_count; // No multisampling
+	swapchain_desc.SampleDesc.Quality = num_quality_levels; // No multisampling quality
 	swapchain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // Use the swapchain for rendering
 	swapchain_desc.Scaling = DXGI_SCALING_STRETCH; // Stretch the swapchain to fit the window
 	swapchain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // Allow mode switching
 	swapchain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED; // No alpha mode
 	swapchain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // Use flip discard for better performance
-
 	// Create the swapchain for m_hwnd
 	ComPtr<IDXGISwapChain1> swapchain1;
 	hr = dxgi_factory->CreateSwapChainForHwnd(
@@ -153,7 +159,7 @@ void s_dxgicontext::create_srv_heap() {
 
 	for (auto& buffer : back_buffers) {
 		if (buffer) {
-			srv->allocate_backbuffer_srv(buffer, DXGI_FORMAT_R8G8B8A8_UNORM); // Allocate SRV for each backbuffer
+			srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
 		}
 	}
 }
@@ -284,13 +290,13 @@ void s_dxgicontext::create_pipeline() {
 		.set_vertex_shader(shaders->get_shader_blob(shader_type::vertex))
 		.set_pixel_shader(shaders->get_shader_blob(shader_type::pixel))
 		.set_input_layout(input_layout)
-		.set_rtv_format(0, DXGI_FORMAT_R8G8B8A8_UNORM)
+		.set_rtv_format(0, dxgiformat)
 		.disable_depth()
 		.enable_alpha_blending()
 		.set_primitive_topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)
 		.set_dsv_format(DXGI_FORMAT_UNKNOWN) // No depth-stencil view
 		.set_num_render_targets(1) // One render target
-		.set_sample_desc({ 1, 0 }) // No multisampling
+		.set_sample_desc({ sample_count, num_quality_levels })
 		.build();
 
 	if (!pso_triangle)
