@@ -2,7 +2,7 @@
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Users/dev/source/repos/get2work/flashgui/vcpkg_installed/vcpkg/pkgs/detect_compiler_x64-windows-static")
+  set(CMAKE_INSTALL_PREFIX "C:/Users/dev.DESKTOP-Q7BA7UO/source/repos/get2work/flashgui/vcpkg_installed/vcpkg/pkgs/detect_compiler_x64-windows-static")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -32,12 +32,6 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "OFF")
 endif()
 
-string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
-       "${CMAKE_INSTALL_MANIFEST_FILES}")
-if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "C:/Users/dev/source/repos/get2work/flashgui/vcpkg_installed/vcpkg/blds/detect_compiler/x64-windows-static-rel/install_local_manifest.txt"
-     "${CMAKE_INSTALL_MANIFEST_CONTENT}")
-endif()
 if(CMAKE_INSTALL_COMPONENT)
   if(CMAKE_INSTALL_COMPONENT MATCHES "^[a-zA-Z0-9_.+-]+$")
     set(CMAKE_INSTALL_MANIFEST "install_manifest_${CMAKE_INSTALL_COMPONENT}.txt")
@@ -51,6 +45,8 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "C:/Users/dev/source/repos/get2work/flashgui/vcpkg_installed/vcpkg/blds/detect_compiler/x64-windows-static-rel/${CMAKE_INSTALL_MANIFEST}"
+  string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
+       "${CMAKE_INSTALL_MANIFEST_FILES}")
+  file(WRITE "C:/Users/dev.DESKTOP-Q7BA7UO/source/repos/get2work/flashgui/vcpkg_installed/vcpkg/blds/detect_compiler/x64-windows-static-rel/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

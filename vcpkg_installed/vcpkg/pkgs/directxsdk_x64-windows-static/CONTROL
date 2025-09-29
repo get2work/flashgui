@@ -3,7 +3,7 @@ Version: jun10
 Port-Version: 8
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: 0ffae27f0c47db5410e9028c33e66d50dc2744a776798542c413984371c7181d
+Abi: beb397179a8b430db99b57fc43a52d1f0e47f08aecaad1ed595837fb664dc1c5
 Description: Legacy DirectX SDK
 
 Package: directxsdk

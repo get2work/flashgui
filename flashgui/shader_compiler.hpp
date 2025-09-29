@@ -331,11 +331,16 @@ namespace fgui {
 				//circle outline
 				float2 center = 0.5f * input.inst_size;
 				float2 p = local - center;
-				float dist = sdCircle(p, center.x);
-				float inner = input.inst_stroke * 0.5;
-				float aa = fwidth(dist);
-				alpha = smoothstep(inner, inner + aa, abs(dist));
-				alpha = 1.0f - alpha;
+				float radius = center.x;
+				float thickness = input.inst_stroke;
+
+				float dist_outer = sdCircle(p, radius);
+				float dist_inner = sdCircle(p, radius - thickness);
+				float aa = fwidth(dist_outer);
+
+				float alpha_outer = smoothstep(0.0, aa, -dist_outer);
+				float alpha_inner = smoothstep(0.0, aa, -dist_inner);
+				alpha = alpha_outer - alpha_inner;
 			}
 			else if (input.inst_type == 0) {
 				// Box/outline, not centered

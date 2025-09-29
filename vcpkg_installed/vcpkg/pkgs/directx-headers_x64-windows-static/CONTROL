@@ -3,5 +3,5 @@ Version: 1.615.0
 Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
 Architecture: x64-windows-static
 Multi-Arch: same
-Abi: dac880d0eafc4f3460aae4674b98631276643c2c02adeb8116105f58c1814dc7
+Abi: 14a3579ddb25337221167ca52642d7e2f969994fb1f48c55a0d189f320c6e609
 Description: Official DirectX 12 Headers
