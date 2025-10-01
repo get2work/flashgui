@@ -15,50 +15,56 @@ LRESULT CALLBACK hk::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
 	m_mode = (swapchain && cmd_queue) ? render_mode::hooked : render_mode::standalone;
 
-	if (m_mode == render_mode::hooked) {
-		m_dx.swapchain = swapchain;
-		m_dx.cmd_queue = cmd_queue;
+	try {
+		if (m_mode == render_mode::hooked) {
+			m_dx.swapchain = swapchain;
+			m_dx.cmd_queue = cmd_queue;
 
-		if (!process->window.handle) {
-			throw std::runtime_error("Window handle cannot be null in hooked mode");
+			if (!process->window.handle) {
+				throw std::runtime_error("Window handle cannot be null in hooked mode");
+			}
+
+			m_dx.initialize_hooked();
+		}
+		else {
+			m_dx.initialize_standalone(target_buffer_count);
 		}
 
-		m_dx.initialize_hooked();
-	} else {
-		m_dx.initialize_standalone(target_buffer_count);
+		m_frame_resources.resize(m_dx.buffer_count);
+
+		m_dx.create_pipeline();
+
+		const float width = static_cast<float>(process->window.get_width());
+		const float height = static_cast<float>(process->window.get_height());
+
+		m_viewport = {
+			0.0f, 0.0f,
+			width, height,
+			0.0f, 1.0f
+		};
+
+		m_scissor_rect = {
+			0l, 0l,
+			process->window.get_width(),
+			process->window.get_height()
+		};
+
+		// Initialize frame resources
+		for (auto& fr : m_frame_resources) {
+			fr.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
+		}
+
+		m_transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
+			0.0f, width,   // left, right
+			height, 0.0f, // bottom, top
+			0.0f, 1.0f   // near, far
+		);
+
+		m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 	}
-
-	m_frame_resources.resize(m_dx.buffer_count);
-
-	m_dx.create_pipeline();
-
-	const float width = static_cast<float>(process->window.get_width());
-	const float height = static_cast<float>(process->window.get_height());
-	
-	m_viewport = {
-		0.0f, 0.0f,
-		width, height,
-		0.0f, 1.0f
-	};
-
-	m_scissor_rect = {
-		0l, 0l,
-		process->window.get_width(),
-		process->window.get_height()
-	};
-
-	// Initialize frame resources
-	for (auto& fr : m_frame_resources) {
-		fr.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
+	catch (const std::exception& e) {
+		std::cerr << "Exception thrown during renderer initialization!\n" << e.what() << std::endl;
 	}
-
-	m_transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
-		0.0f, width,   // left, right
-		height, 0.0f, // bottom, top
-		0.0f, 1.0f   // near, far
-	);
-
-	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
 
 void c_renderer::resize_frame() {

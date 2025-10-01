@@ -10,7 +10,6 @@
       ]
     },
     "directx-headers",
-    "directx-dxc",
-    "stb"
+    "directx-dxc"
   ]
 }

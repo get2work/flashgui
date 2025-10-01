@@ -26,10 +26,7 @@
 #include <directx-dxc/dxcapi.h>
 #include <DirectXMath.h>
 #include <Shlwapi.h>
-#include <stb_truetype.h>
 #include <stdexcept>
 #include <thread>
-
-#define STB_TRUETYPE_IMPLEMENTATION
 
 #endif //PCH_H

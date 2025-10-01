@@ -4,6 +4,7 @@
 
 using namespace fgui;
 
+//unhandled
 void s_dxgicontext::initialize_hooked() {
 
 	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
@@ -29,13 +30,7 @@ void s_dxgicontext::initialize_hooked() {
 void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 	buffer_count = target_buf_count;
 
-	try {
-		create_device_and_swapchain();
-	}
-	catch (const std::exception& e) {
-		std::cerr << "[flashgui] Error during device and swapchain creation: " << e.what() << std::endl;
-	
-	}
+	create_device_and_swapchain();
 	create_rtv_heap();
 	create_backbuffers();
 	create_srv_heap();
@@ -210,7 +205,7 @@ void s_dxgicontext::create_quad_buffers() {
 	vb_desc.SampleDesc.Count = 1;
 	vb_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-	device->CreateCommittedResource(
+	HRESULT hr = device->CreateCommittedResource(
 		&heap_props,
 		D3D12_HEAP_FLAG_NONE,
 		&vb_desc,
@@ -218,6 +213,9 @@ void s_dxgicontext::create_quad_buffers() {
 		nullptr,
 		IID_PPV_ARGS(&m_quad_vertex_buffer)
 	);
+
+	if (FAILED(hr))
+		throw std::runtime_error("Failed to create m_quad_vertex_buffer resource HRESULT: " + std::to_string(hr));
 
 	// Upload vertex data
 	void* vb_ptr = nullptr;
@@ -235,7 +233,7 @@ void s_dxgicontext::create_quad_buffers() {
 	D3D12_RESOURCE_DESC ib_desc = vb_desc;
 	ib_desc.Width = ib_size;
 
-	device->CreateCommittedResource(
+	hr = device->CreateCommittedResource(
 		&heap_props,
 		D3D12_HEAP_FLAG_NONE,
 		&ib_desc,
@@ -243,6 +241,9 @@ void s_dxgicontext::create_quad_buffers() {
 		nullptr,
 		IID_PPV_ARGS(&m_quad_index_buffer)
 	);
+
+	if (FAILED(hr))
+		throw std::runtime_error("Failed to create m_quad_index_buffer resource HRESULT: " + std::to_string(hr));
 
 	// Upload index data
 	void* ib_ptr = nullptr;
