@@ -222,7 +222,7 @@ void c_renderer::resize_frame() {
 	}
 
 	for (auto& frame : m_frame_resources)
-		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
+		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
 
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);

@@ -49,7 +49,7 @@ namespace fgui {
 		uint32_t rtv_descriptor_size = 0; // Size of render target view descriptor
 
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
-		uint32_t buffer_count = 3; // Default buffer count for swapchain
+		uint32_t buffer_count = 4; // Default buffer count for swapchain
 
 		ComPtr<ID3D12Resource> m_quad_vertex_buffer;
 		ComPtr<ID3D12Resource> m_quad_index_buffer;
