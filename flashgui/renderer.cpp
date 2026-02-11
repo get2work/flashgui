@@ -97,15 +97,15 @@ void c_renderer::initialize_fonts()
 				uint32_t v = g.bitmap[y * glyph_w + x];
 				uint8_t  alpha = v ? 255u : 0u;
 
-				int dstIndex = ((dst_y + y) * atlas_w + (dst_x + x)) * 4;
-				atlas[dstIndex + 0] = 255;   // R
-				atlas[dstIndex + 1] = 255;   // G
-				atlas[dstIndex + 2] = 255;   // B
-				atlas[dstIndex + 3] = alpha; // A
+				int dst_index = ((dst_y + y) * atlas_w + (dst_x + x)) * 4;
+				atlas[size_t(dst_index + 0)] = 255;   // R
+				atlas[size_t(dst_index + 1)] = 255;   // G
+				atlas[size_t(dst_index + 2)] = 255;   // B
+				atlas[size_t(dst_index + 3)] = alpha; // A
 			}
 		}
 
-		font_glyph_info info;
+		font_glyph_info info{};
 		info.u0 = dst_x / float(atlas_w);
 		info.v0 = dst_y / float(atlas_h);
 		info.u1 = (dst_x + glyph_w) / float(atlas_w);
@@ -156,8 +156,8 @@ void c_renderer::initialize_fonts()
 	// Subresource data (note RowPitch/SlicePitch in bytes)
 	D3D12_SUBRESOURCE_DATA sub{};
 	sub.pData = atlas.data();
-	sub.RowPitch = atlas_w * 4;
-	sub.SlicePitch = atlas_w * atlas_h * 4;
+	sub.RowPitch = static_cast<LONG_PTR>(atlas_w) * 4;
+	sub.SlicePitch = static_cast<LONG_PTR>(atlas_w * atlas_h) * 4;
 
 	auto& fr = m_frame_resources[m_frame_index];
 	auto& cmd = fr.command_list;
@@ -182,7 +182,7 @@ void c_renderer::initialize_fonts()
 	fr.signal(m_dx.cmd_queue);
 	fr.wait_for_gpu();
 
-	// Leave it closed; begin_frame() will reset with PSO later
+	// leave cmd closed begin_frame() will reset with PSO later
 
 	// SRV
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
@@ -248,21 +248,22 @@ void c_renderer::resize_frame() {
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
 // use m_last_frame_time to calculate delta time for fps calculation and animations if needed.
-int c_renderer::get_fps() {
-	return static_cast<int>(m_fps);
+int c_renderer::get_fps() const {
+	return m_fps;
 }
 
 // Called at the beginning of each frame. Prepares command list and render target.
 void c_renderer::begin_frame() {
-	/*//check if we are at a new second (milliseconds = 0)
-	if (std::chrono::steady_clock::now()) {
-		m_fps = m_frame_count; // Update FPS with the count from the last second
+	auto now = std::chrono::steady_clock::now();
+
+	++m_frame_count;
+
+	if (now - m_last_fps_update >= std::chrono::seconds(1)) {
+		m_fps = static_cast<int>(m_frame_count); // frames rendered in the last second
 		m_frame_count = 0;
+		m_last_fps_update = now;
 	}
-	else {
-		m_frame_count++; // Increment frame count for the current second
-	}
-	*/
+	
     frame_resource& fr = m_frame_resources[m_frame_index];
     if (process->needs_resize()) {
         fr.signal(m_dx.cmd_queue);
@@ -318,11 +319,18 @@ void c_renderer::end_frame() {
 	frame_resource& fr = m_frame_resources[m_frame_index];
 	auto& cmd = fr.command_list;
 
-	if (!instances.empty()) {
-		// Upload instance data
+	std::vector<shape_instance> frame_instances;
+	frame_instances.reserve(instances.size() + im_instances.size());
+	frame_instances.insert(frame_instances.end(), instances.begin(), instances.end());
+	frame_instances.insert(frame_instances.end(), im_instances.begin(), im_instances.end());
+	im_instances.clear(); // immediate are per-frame
+
+	//
+	if (!frame_instances.empty()) {
+		// Upload instance data, also upload immediate instances for text and other dynamic shapes
 		D3D12_GPU_VIRTUAL_ADDRESS instance_gpu_va = fr.push_bytes(
-			instances.data(),
-			instances.size() * sizeof(shape_instance),
+			frame_instances.data(),
+			frame_instances.size() * sizeof(shape_instance),
 			16
 		);
 
@@ -330,7 +338,7 @@ void c_renderer::end_frame() {
 		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
 		vbv_inst.BufferLocation = instance_gpu_va;
 		//size of all shapes
-		vbv_inst.SizeInBytes = static_cast<UINT>(instances.size() * sizeof(shape_instance));
+		vbv_inst.SizeInBytes = static_cast<UINT>(frame_instances.size() * sizeof(shape_instance));
 		//size of each shape
 		vbv_inst.StrideInBytes = sizeof(shape_instance);
 
@@ -350,7 +358,7 @@ void c_renderer::end_frame() {
 		// Change index count for each.
 		cmd->DrawIndexedInstanced(
 			6, // 6 indices for two triangles (unit quad)
-			static_cast<UINT>(instances.size()), // instance count
+			static_cast<UINT>(frame_instances.size()), // instance count
 			0, 0, 0
 		);
 	}
@@ -375,7 +383,7 @@ void c_renderer::end_frame() {
 	m_dx.cmd_queue->ExecuteCommandLists(1, cmd_lists);
 
 	// present the swapchain
-	HRESULT hr = m_dx.swapchain->Present(1, 0);
+	HRESULT hr = m_dx.swapchain->Present(0, 0);
 	
 	if (FAILED(hr)) {
 		std::cerr << "Failed to present swapchain HRSESULT:" << hr << std::endl;
@@ -390,91 +398,68 @@ void c_renderer::end_frame() {
 	// increment the frame index
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 	fr.signal(m_dx.cmd_queue);
-
-	//clear shape instances
-	instances.clear();
 }
 
-void c_renderer::add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
+shape_instance* c_renderer::add_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
+	instances.push_back(shape_instance(pos, size, clr, rotation, outline_width, shape_type::quad));
+		return &instances.back();
+}
+
+void c_renderer::draw_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
+	if (process->needs_resize())
+		return;
+	im_instances.push_back(shape_instance(pos, size, clr, rotation, outline_width, shape_type::quad));
+}
+
+shape_instance* c_renderer::add_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width) {
+	instances.push_back(shape_instance(start, end, clr, 0.f, width, shape_type::line));
+	return &instances.back();
+}
+
+void c_renderer::draw_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width) {
+	if (process->needs_resize())
+		return;
+	im_instances.push_back(shape_instance(start, end, clr, 0.f, width, shape_type::line));
+}
+
+shape_instance* c_renderer::add_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width, float rotation) {
+	instances.push_back(shape_instance(pos, size, clr, rotation, width, shape_type::quad_outline));
+	return &instances.back();
+}
+
+void c_renderer::draw_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width, float rotation) {
+	if (process->needs_resize())
+		return;
+	im_instances.push_back(shape_instance(pos, size, clr, rotation, width, shape_type::quad_outline));
+}
+
+shape_instance* c_renderer::add_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle));
+	return &instances.back();
+}
+
+void c_renderer::draw_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	if (process->needs_resize())
+		return;
+	im_instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle));
+}
+
+shape_instance* c_renderer::add_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle_outline));
+	return &instances.back();
+}
+
+void c_renderer::draw_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
+	if (process->needs_resize())
+		return;
+	im_instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle_outline));
+}
+
+void c_renderer::draw_text(const std::string& text, vec2i pos, float scale, DirectX::XMFLOAT4 clr) {
 	if (process->needs_resize())
 		return;
 
-	shape_instance inst;
-	inst.pos = pos;           // Beginning position
-	inst.size = size;          // Full width and height
-	inst.rotation = rotation;      // Rotation in radians
-	inst.stroke_width = outline_width;          // Filled quad, no outline
-	inst.clr = clr;           // RGBA color (0..1)
-	inst.shape_type = shape_type::quad;             // 0 = filled quad
-
-	instances.push_back(inst);
-}
-
-void c_renderer::add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width) {
-	if (process->needs_resize())
-		return;
-
-	shape_instance inst;
-	inst.pos = start;
-	inst.size = end;
-	inst.rotation = 0;
-	inst.stroke_width = width;
-	inst.clr = clr;
-	inst.shape_type = shape_type::line;
-	
-	instances.push_back(inst);
-}
-
-void c_renderer::add_quad_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float width, float rotation) {
-	if (process->needs_resize())
-		return;
-
-	shape_instance inst;
-	inst.pos = pos;
-	inst.size = size;
-	inst.clr = clr;
-	inst.stroke_width = width;
-	inst.rotation = rotation;
-	inst.shape_type = shape_type::quad_outline;
-
-	instances.push_back(inst);
-}
-
-void c_renderer::add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
-	if (process->needs_resize())
-		return;
-
-	shape_instance inst;
-	inst.pos = pos;
-	inst.size = size;
-	inst.clr = clr;
-	inst.rotation = angle;
-	inst.stroke_width = outline_width;
-	inst.shape_type = shape_type::circle;
-
-	instances.push_back(inst);
-}
-
-void c_renderer::add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
-	if (process->needs_resize())
-		return;
-
-	shape_instance inst;
-	inst.pos = pos;
-	inst.size = size;
-	inst.rotation = angle;
-	inst.clr = clr;
-	inst.stroke_width = outline_width;
-	inst.shape_type = shape_type::circle_outline;
-
-	instances.push_back(inst);
-}
-
-void c_renderer::draw_text(const std::string& text, DirectX::XMFLOAT2 pos, float scale, DirectX::XMFLOAT4 clr) {
-	if (process->needs_resize())
-		return;
-
-	DirectX::XMFLOAT2 cursor = pos;
+	vec2i cursor = pos;
 	for (char c : text) {
 		auto it = m_font_glyphs.find(static_cast<uint32_t>(c));
 		if (it == m_font_glyphs.end()) {
@@ -482,21 +467,16 @@ void c_renderer::draw_text(const std::string& text, DirectX::XMFLOAT2 pos, float
 			continue;
 		}
 		const font_glyph_info& glyph = it->second;
-		shape_instance inst;
-		
-		inst.pos = cursor;
-		
-		inst.size = DirectX::XMFLOAT2(
-			font8x8_glyph_width * scale,
-			font8x8_glyph_height * scale
-		);
 
-		inst.clr = clr;
-		inst.stroke_width = 1.f; // filled
-		inst.rotation = 0.f;
-		inst.shape_type = shape_type::text_quad;
-		inst.uv = DirectX::XMFLOAT4(glyph.u0, glyph.v0, glyph.u1, glyph.v1);
-		instances.push_back(inst);
-		cursor.x += glyph.advance * scale;
+		im_instances.push_back(shape_instance(cursor,
+			vec2i(font8x8_glyph_width * scale, font8x8_glyph_height * scale),
+			clr,
+			0.f,
+			1.f,
+			shape_type::text_quad,
+			DirectX::XMFLOAT4(glyph.u0, glyph.v0, glyph.u1, glyph.v1)
+		));
+
+		cursor.x += static_cast<int>(glyph.advance * scale);
 	}
 }

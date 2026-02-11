@@ -23,6 +23,9 @@
     <Filter Include="src\font">
       <UniqueIdentifier>{6d160300-9484-4faa-8d08-95ed7436165a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\types">
+      <UniqueIdentifier>{0416d8ff-d225-4057-a8d4-393a0f15e512}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -64,6 +67,9 @@
     <ClInclude Include="fonts.h">
       <Filter>src\font</Filter>
     </ClInclude>
+    <ClInclude Include="vec2.h">
+      <Filter>src\types</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -91,6 +97,9 @@
     </None>
     <None Include="..\vcpkg-configuration.json">
       <Filter>vcpkg</Filter>
+    </None>
+    <None Include="cpp.hint">
+      <Filter>src\helpers</Filter>
     </None>
   </ItemGroup>
 </Project>

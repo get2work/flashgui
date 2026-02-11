@@ -36,6 +36,11 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	fgui::initialize();
 
 	MSG msg{}; bool running = true;
+
+	// Create a background quad that fills the entire window, we will resize it every frame to match the window size
+	// This is more efficient than creating a new quad every frame, and allows us to have a consistent background color
+	fgui::shape_instance* background = fgui::render->add_quad({ 0, 0 }, { 0, 0 }, { 0.05f, 0.05f, 0.1f, 1.f });
+
 	while (running) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
 			if (msg.message == WM_QUIT) { running = false; break; }
@@ -46,11 +51,12 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		if (!running) break;
 
 		fgui::render->begin_frame();
-		//draw
-		fgui::render->add_quad({ 0.f, 0.f }, fgui::process->window.get_size(), {0.05f, 0.05f, 0.1f, 1.f});
 
-		//text
-		fgui::render->draw_text("FlashGUI Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200.f, 50.f}, 1.0f, {0.f, 1.f, 1.f, 1.f});
+		background->size = fgui::process->window.get_size();
+		// sample immediate mode circle outline, should be drawn on top of the background quad
+		fgui::render->draw_circle_outline({ 140, 30 }, { 50, 50 }, { 1.f, 0.7f, 0.7f, 1.f }, 0.f, 5.f);
+		// Draw some test text with the current FPS in cyan color
+		fgui::render->draw_text("FlashGUI Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, 1.0f, {0.f, 1.f, 1.f, 1.f});
 		fgui::render->end_frame();
 	}
 

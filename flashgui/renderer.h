@@ -13,6 +13,7 @@
 #include "dxgicontext.h"
 #include "procmanager.h"
 #include "frame_resource.hpp"
+#include "vec2.h"
 
 #include "fonts.h"
 
@@ -32,6 +33,20 @@ namespace fgui {
 		DirectX::XMFLOAT4 clr; //rgba float colors (0f-1f)
 		uint32_t shape_type; //0=quad, 1=quad outline, 2=circle, 3=circle outline, 4=line
 		DirectX::XMFLOAT4  uv;          // u0,v0,u1,v1 for text/other textured
+
+		bool visible = true; // Whether the shape should be rendered
+
+		shape_instance(vec2i _pos, vec2i _size, DirectX::XMFLOAT4 _clr, float _rotation = 0.f, float _stroke_width = 0.f, uint32_t _shape_type = 0, DirectX::XMFLOAT4 _uv = {0.f, 0.f, 1.f, 1.f})
+			: pos(_pos),
+			  size(_size),
+			  rotation(_rotation),
+			  stroke_width(_stroke_width),
+			  clr(_clr),
+			  shape_type(_shape_type),
+			uv(_uv) {
+		}
+		shape_instance() : pos(0, 0), size(0, 0), rotation(0.f), stroke_width(0.f), clr(1.f, 1.f, 1.f, 1.f), shape_type(0), uv(0.f, 0.f, 1.f, 1.f) {
+		}
 	};
 
 	struct font_glyph_info {
@@ -54,14 +69,21 @@ namespace fgui {
 		void end_frame();
 
 		//draw functions
-		void add_quad(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
-		void add_quad_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
-		void add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width = 1.f);
-		void add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
-		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
-		void draw_text(const std::string& text, DirectX::XMFLOAT2 pos, float scale, DirectX::XMFLOAT4 clr);
+		shape_instance* add_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
+		shape_instance* add_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
+		shape_instance* add_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width = 1.f);
+		shape_instance* add_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
+		shape_instance* add_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
+		
+		void draw_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
+		void draw_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
+		void draw_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width = 1.f);
+		void draw_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
+		void draw_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
 
-		int get_fps();
+		void draw_text(const std::string& text, vec2i pos, float scale, DirectX::XMFLOAT4 clr);
+
+		int get_fps() const;
 	private:
 
 		void initialize_fonts();
@@ -82,13 +104,14 @@ namespace fgui {
 		//shape instances for quad
 		std::vector<shape_instance> instances;
 
-		//circle instances
-		std::vector<shape_instance> instances_circle;
+		//immediate instances, cleared every frame, used for text and other shapes that need to be updated every frame
+		std::vector<shape_instance> im_instances;
 
 		uint32_t m_frame_index = 0; // Current frame index
 
 		uint32_t m_frame_count = 0; // Total frame count this second
 		int m_fps = 0; // FPS value
+		std::chrono::steady_clock::time_point m_last_fps_update; // Last time FPS was updated
 
 		D3D12_VIEWPORT m_viewport = {}; // Viewport for rendering
 		D3D12_RECT m_scissor_rect = {}; // Scissor rectangle for rendering

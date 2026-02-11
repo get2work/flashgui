@@ -83,7 +83,7 @@ namespace fgui {
 				return {};
 
 			D3D12_CPU_DESCRIPTOR_HANDLE handle = rtv_heap->GetCPUDescriptorHandleForHeapStart();
-			handle.ptr += index * rtv_descriptor_size;
+			handle.ptr += static_cast<SIZE_T>(index) * rtv_descriptor_size;
 
 			return handle;
 		}
