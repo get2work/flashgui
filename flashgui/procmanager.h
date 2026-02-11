@@ -29,6 +29,11 @@ namespace fgui {
 			long get_height() const {
 				return rect.bottom - rect.top;
 			}
+
+			DirectX::XMFLOAT2 get_size() const {
+				return { static_cast<float>(get_width()), static_cast<float>(get_height()) };
+			}
+
 			long get_posx() const {
 				return rect.left;
 			}

@@ -47,19 +47,10 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 
 		fgui::render->begin_frame();
 		//draw
-		fgui::render->add_quad({ 0.f, 0.f }, { 100.f, 100.f }, { 1.f, 0.f, 1.f, 1.f });
-
-		//line
-		fgui::render->add_line({ 100.f, 100.f }, { 300.f, 300.f }, { 1.f, 1.f, 1.f, 1.f }, 1.f);
-
-		//quad outline
-		fgui::render->add_quad_outline({ 300.f, 300.f }, { 100.f, 100.f }, { 1.f, 1.f, 1.f, 1.f }, 1.f);
-		fgui::render->add_circle({ 300.f, 100.f }, { 100.f, 100.f }, { 0.f, 0.f, 1.f, 1.f }, 1.f);
-		fgui::render->add_circle_outline({ 300.f, 0.f }, { 100.f, 100.f }, { 0.f, 1.f, 1.f, 1.f }, 0.f, 0.5f);
-		fgui::render->add_circle_outline({ 210.f, 10.f }, { 50.f, 50.f }, { 1.f, 0.f, 0.5f, 1.f }, 0.f, 0.5f);
+		fgui::render->add_quad({ 0.f, 0.f }, fgui::process->window.get_size(), {0.05f, 0.05f, 0.1f, 1.f});
 
 		//text
-		fgui::render->draw_text("Hello, FlashGUI!", { 200.f, 200.f }, 1.0f, { 0.f, 1.f, 1.f, 1.f });
+		fgui::render->draw_text("FlashGUI Test Window", {200.f, 50.f}, 1.0f, {0.f, 1.f, 1.f, 1.f});
 		fgui::render->end_frame();
 	}
 
