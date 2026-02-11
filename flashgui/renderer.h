@@ -116,7 +116,7 @@ namespace fgui {
 		D3D12_VIEWPORT m_viewport = {}; // Viewport for rendering
 		D3D12_RECT m_scissor_rect = {}; // Scissor rectangle for rendering
 
-		// Constant buffer for transformations, aligned to 256 bytes
+		// Constant buffer for transformations, aligned ttop o 256 bytes
 		struct alignas(256) transform_cb {
 			DirectX::XMMATRIX projection_matrix;
 		} m_transform_cb{};

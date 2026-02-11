@@ -77,24 +77,17 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 	case WM_SIZE:
 	{
 		m_minimized = (wparam == SIZE_MINIMIZED);
+		if (m_minimized) return 0;
 
-		if (m_minimized) {
-			return 0; // Skip resizing when minimized
+		int new_width = LOWORD(lparam);
+		int new_height = HIWORD(lparam);
+		if (new_width == 0 || new_height == 0) return 0;
+
+		if (new_width != window.get_width() || new_height != window.get_height()) {
+			window.rect.right = window.rect.left + new_width;
+			window.rect.bottom = window.rect.top + new_height;
+			m_needs_resize = true;
 		}
-
-		RECT new_rect = {};
-		if (GetClientRect(hwnd, &new_rect)) {
-			int new_width = new_rect.right - new_rect.left;
-			int new_height = new_rect.bottom - new_rect.top;
-			int old_width = window.get_width();
-			int old_height = window.get_height();
-
-			if (new_width != old_width || new_height != old_height) {
-				window.rect = new_rect;
-				m_needs_resize = true;
-			}
-		}
-
 		return 0;
 	}
 	case WM_KEYDOWN:

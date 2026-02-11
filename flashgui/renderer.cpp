@@ -222,7 +222,7 @@ void c_renderer::resize_frame() {
 	}
 
 	for (auto& frame : m_frame_resources)
-		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
+		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
 
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);
@@ -319,48 +319,59 @@ void c_renderer::end_frame() {
 	frame_resource& fr = m_frame_resources[m_frame_index];
 	auto& cmd = fr.command_list;
 
-	std::vector<shape_instance> frame_instances;
-	frame_instances.reserve(instances.size() + im_instances.size());
-	frame_instances.insert(frame_instances.end(), instances.begin(), instances.end());
-	frame_instances.insert(frame_instances.end(), im_instances.begin(), im_instances.end());
-	im_instances.clear(); // immediate are per-frame
+	// Upload and draw persistent instances using per-frame upload heap (no merge)
+	const size_t persistent_count = instances.size();
+	const size_t immediate_count = im_instances.size();
 
-	//
-	if (!frame_instances.empty()) {
-		// Upload instance data, also upload immediate instances for text and other dynamic shapes
-		D3D12_GPU_VIRTUAL_ADDRESS instance_gpu_va = fr.push_bytes(
-			frame_instances.data(),
-			frame_instances.size() * sizeof(shape_instance),
+	if (persistent_count >0) {
+		D3D12_GPU_VIRTUAL_ADDRESS inst_va = fr.push_bytes(
+			instances.data(),
+			persistent_count * sizeof(shape_instance),
 			16
 		);
 
-		// Prepare vertex buffer views
 		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
-		vbv_inst.BufferLocation = instance_gpu_va;
-		//size of all shapes
-		vbv_inst.SizeInBytes = static_cast<UINT>(frame_instances.size() * sizeof(shape_instance));
-		//size of each shape
+		vbv_inst.BufferLocation = inst_va;
+		vbv_inst.SizeInBytes = static_cast<UINT>(persistent_count * sizeof(shape_instance));
 		vbv_inst.StrideInBytes = sizeof(shape_instance);
 
-		//set vertex buffer views
 		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { m_dx.m_quad_vbv, vbv_inst };
-		cmd->IASetVertexBuffers(0, 2, vbvs);
-
-		// Index buffer for unit quad
+		cmd->IASetVertexBuffers(0,2, vbvs);
 		cmd->IASetIndexBuffer(&m_dx.m_quad_ibv);
-
-		//drawing triangles, lines represented as thin rectangles
-		//formed by 2 triangles
 		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		// Draw all instances
-		// TODO: Store different instance arrays
-		// Change index count for each.
 		cmd->DrawIndexedInstanced(
-			6, // 6 indices for two triangles (unit quad)
-			static_cast<UINT>(frame_instances.size()), // instance count
-			0, 0, 0
+			6,
+			static_cast<UINT>(persistent_count),
+			0,0,0
 		);
+	}
+
+	// Upload and draw immediate (per-frame) instances
+	if (immediate_count >0) {
+		D3D12_GPU_VIRTUAL_ADDRESS inst_va2 = fr.push_bytes(
+			im_instances.data(),
+			immediate_count * sizeof(shape_instance),
+			16
+		);
+
+		D3D12_VERTEX_BUFFER_VIEW vbv_inst2 = {};
+		vbv_inst2.BufferLocation = inst_va2;
+		vbv_inst2.SizeInBytes = static_cast<UINT>(immediate_count * sizeof(shape_instance));
+		vbv_inst2.StrideInBytes = sizeof(shape_instance);
+
+		D3D12_VERTEX_BUFFER_VIEW vbvs2[2] = { m_dx.m_quad_vbv, vbv_inst2 };
+		cmd->IASetVertexBuffers(0,2, vbvs2);
+		cmd->IASetIndexBuffer(&m_dx.m_quad_ibv);
+		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		cmd->DrawIndexedInstanced(
+			6,
+			static_cast<UINT>(immediate_count),
+			0,0,0
+		);
+
+		im_instances.clear(); // immediate are per-frame
 	}
 
 	// Transition back to present

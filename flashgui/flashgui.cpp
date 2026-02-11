@@ -7,7 +7,7 @@ namespace fgui {
 
 	//global definitions
 	std::unique_ptr<c_renderer> render = nullptr;
-	uint32_t target_buffer_count = 3;
+	uint32_t target_buffer_count = 4;
 	std::unique_ptr<c_process> process;
 	//
 	bool initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {

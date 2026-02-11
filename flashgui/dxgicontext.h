@@ -78,6 +78,7 @@ namespace fgui {
 			return back_buffers[index].Get();
 		}
 
+
 		D3D12_CPU_DESCRIPTOR_HANDLE get_rtv_handle(uint32_t index) const {
 			if (!rtv_heap || index >= buffer_count)
 				return {};
