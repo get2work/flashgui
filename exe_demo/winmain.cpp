@@ -13,6 +13,7 @@ static void init_console() {
 	FILE* f_in = nullptr;
 	FILE* f_out = nullptr;
 	FILE* f_err = nullptr;
+
 	freopen_s(&f_in, "CONIN$", "r", stdin);
 	freopen_s(&f_out, "CONOUT$", "w", stdout);
 	freopen_s(&f_err, "CONOUT$", "w", stderr);
@@ -25,7 +26,7 @@ static void init_console() {
 	std::ios::sync_with_stdio(true);
 	std::wcout.clear(); std::cout.clear(); std::wcerr.clear(); std::cerr.clear(); std::wcin.clear(); std::cin.clear();
 
-	// Smoke test
+	// test
 	std::cout << "[console] Initialized" << std::endl;
 }
 
@@ -56,6 +57,9 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->add_circle({ 300.f, 100.f }, { 100.f, 100.f }, { 0.f, 0.f, 1.f, 1.f }, 1.f);
 		fgui::render->add_circle_outline({ 300.f, 0.f }, { 100.f, 100.f }, { 0.f, 1.f, 1.f, 1.f }, 0.f, 0.5f);
 		fgui::render->add_circle_outline({ 210.f, 10.f }, { 50.f, 50.f }, { 1.f, 0.f, 0.5f, 1.f }, 0.f, 0.5f);
+
+		//text
+		fgui::render->draw_text("Hello, FlashGUI!", { 200.f, 200.f }, 1.0f, { 0.f, 1.f, 1.f, 1.f });
 		fgui::render->end_frame();
 	}
 

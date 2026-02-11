@@ -8,10 +8,13 @@
 #include <iostream>
 #include <string>
 #include <DirectXMath.h>
+#include <unordered_map>
 
 #include "dxgicontext.h"
 #include "procmanager.h"
 #include "frame_resource.hpp"
+
+#include "fonts.h"
 
 namespace fgui {
 	using Microsoft::WRL::ComPtr;
@@ -28,6 +31,12 @@ namespace fgui {
 		float stroke_width; //line width for lines, >0 for outline on filled shapes
 		DirectX::XMFLOAT4 clr; //rgba float colors (0f-1f)
 		uint32_t shape_type; //0=quad, 1=quad outline, 2=circle, 3=circle outline, 4=line
+		DirectX::XMFLOAT4  uv;          // u0,v0,u1,v1 for text/other textured
+	};
+
+	struct font_glyph_info {
+		float u0, v0, u1, v1; // UV rect in atlas
+		float advance;        // in pixels
 	};
 
 	class c_renderer {
@@ -50,18 +59,29 @@ namespace fgui {
 		void add_line(DirectX::XMFLOAT2 start, DirectX::XMFLOAT2 end, DirectX::XMFLOAT4 clr, float width = 1.f);
 		void add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
 		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
-
+		void draw_text(const std::string& text, DirectX::XMFLOAT2 pos, float scale, DirectX::XMFLOAT4 clr);
 	private:
+
+		void initialize_fonts();
+
+		std::unordered_map<uint32_t, font_glyph_info> m_font_glyphs;
+		Microsoft::WRL::ComPtr<ID3D12Resource>        m_font_texture;
+		D3D12_GPU_DESCRIPTOR_HANDLE                   m_font_srv{};
 
 		enum shape_type : int {
 			quad = 0,
 			quad_outline = 1,
 			circle = 2,
 			circle_outline = 3,
-			line = 4
+			line = 4,
+			text_quad = 5
 		};
 
+		//shape instances for quad
 		std::vector<shape_instance> instances;
+
+		//circle instances
+		std::vector<shape_instance> instances_circle;
 
 		uint32_t m_frame_index = 0; // Current frame index
 		

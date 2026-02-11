@@ -17,6 +17,12 @@
     <Filter Include="pch">
       <UniqueIdentifier>{0e95056a-7d22-4d16-a39c-d3bb2671ed08}</UniqueIdentifier>
     </Filter>
+    <Filter Include="gui">
+      <UniqueIdentifier>{d9f1222b-4fd9-4173-9244-aea82d660cea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\font">
+      <UniqueIdentifier>{6d160300-9484-4faa-8d08-95ed7436165a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -52,6 +58,12 @@
     <ClInclude Include="shader_compiler.hpp">
       <Filter>src\helpers</Filter>
     </ClInclude>
+    <ClInclude Include="gui.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="fonts.h">
+      <Filter>src\font</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -68,6 +80,9 @@
     </ClCompile>
     <ClCompile Include="dxgicontext.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="gui.cpp">
+      <Filter>gui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

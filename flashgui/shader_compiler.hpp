@@ -235,6 +235,7 @@ namespace fgui {
 			float  inst_stroke: TEXCOORD4;  // stroke
 			float4 inst_clr   : TEXCOORD5;  // RGBA
 			uint   inst_type  : TEXCOORD6;  // shape_type
+			float4 inst_uv    : TEXCOORD7; // texture UVs
 		};
 
 		struct VS_OUTPUT
@@ -247,6 +248,7 @@ namespace fgui {
 			float  inst_stroke : TEXCOORD4;
 			float4 inst_clr    : TEXCOORD5;
 			uint   inst_type   : TEXCOORD6;
+			float4 inst_uv     : TEXCOORD7;
 		};
 
 		VS_OUTPUT VSMain(VS_INPUT input)
@@ -276,6 +278,7 @@ namespace fgui {
 			output.inst_stroke = input.inst_stroke;
 			output.inst_clr    = input.inst_clr;
 			output.inst_type   = input.inst_type;
+			output.inst_uv     = input.inst_uv;
 
 			return output;
 		}
@@ -292,7 +295,11 @@ namespace fgui {
 			float  inst_stroke : TEXCOORD4;
 			float4 inst_clr    : TEXCOORD5;
 			uint   inst_type   : TEXCOORD6;
+			float4 inst_uv     : TEXCOORD7;
 		};
+
+		Texture2D font_tex : register(t0);
+		SamplerState font_samp : register(s0);
 
 		// SDF for box starting at origin [0,0], size is full extents
 		float sdBox(float2 p, float2 size)
@@ -316,6 +323,22 @@ namespace fgui {
 
 		float4 PSMain(PS_INPUT input) : SV_TARGET
 		{
+
+			float4 outColor = input.inst_clr;
+
+			// Textured quad
+			if (input.inst_type == 5) { 
+				float2 uv = float2(lerp(input.inst_uv.x, input.inst_uv.z, input.quad_pos.x),
+									 lerp(input.inst_uv.y, input.inst_uv.w, input.quad_pos.y) );
+				float4 texel = font_tex.Sample(font_samp, uv);
+			    // texel.rgb = white (1,1,1) 
+                // texel.a = glyph alpha (0 or 1 for 8x8 font) 
+                float alpha = texel.a * input.inst_clr.a; 
+                // Tint the glyph using inst_clr.rgb
+                float3 rgb = input.inst_clr.rgb * texel.a;
+                return float4(rgb, alpha);
+			}
+
 			float2 local = input.quad_pos * input.inst_size;
 			float dist = 0.0;
 			float alpha = 1.0;
@@ -350,7 +373,8 @@ namespace fgui {
 					? smoothstep(0.0, fwidth(dist), dist)
 					: smoothstep(input.inst_stroke * 0.5, input.inst_stroke * 0.5 + fwidth(dist), abs(dist));
 			}
-			else if (input.inst_type == 1) { // Quad outline
+			else if (input.inst_type == 1) { 
+				// Quad outline
 				float2 p = local;
 				// Center the SDF for edge-aware outlines:
 				float2 half_size = input.inst_size * 0.5;
@@ -366,7 +390,6 @@ namespace fgui {
 				alpha = smoothstep(0.0, fwidth(dist), -dist);
 			}
 
-			float4 outColor = input.inst_clr;
 			outColor.a *= alpha;
 			return outColor;
 		}

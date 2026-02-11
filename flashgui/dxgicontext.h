@@ -25,7 +25,6 @@ namespace fgui {
 		{ 0.0f, 1.0f }  // top-left
 	};
 
-
 	static const uint16_t quad_indices[6] = {
 		0, 1, 2, // first triangle
 		0, 2, 3  // second triangle
@@ -51,7 +50,6 @@ namespace fgui {
 
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
 		uint32_t buffer_count = 3; // Default buffer count for swapchain
-
 
 		ComPtr<ID3D12Resource> m_quad_vertex_buffer;
 		ComPtr<ID3D12Resource> m_quad_index_buffer;

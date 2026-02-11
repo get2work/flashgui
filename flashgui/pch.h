@@ -18,6 +18,9 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <cstdint>
+#include <unordered_map>
+#include <cstddef>
 #include <wrl.h>
 #include <wrl/client.h>
 #include <d3d12.h>

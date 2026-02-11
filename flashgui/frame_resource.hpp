@@ -144,7 +144,7 @@ namespace fgui {
 		}
 
 		void wait_for_gpu() const {
-			if (fence->GetCompletedValue() < fence_value) {
+			if (fence && fence->GetCompletedValue() < fence_value) {
 				fence->SetEventOnCompletion(fence_value, fence_event);
 				WaitForSingleObject(fence_event, INFINITE);
 			}

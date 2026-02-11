@@ -54,8 +54,10 @@ static unsigned __stdcall entry_function(void* param) {
         std::cerr << "[flashgui] Error: " << e.what() << std::endl;
 		std::cerr << "[flashgui] Failed to analyze process " << pid << std::endl;
         std::cerr << "[flashgui] Make sure you are running this on a process that uses DirectX 12 and has a valid swapchain." << std::endl;
-		system("pause");
-        return 1; // Return error code
+        std::cout << "[flashgui] Exiting in 5 seconds..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        
+        goto exit;
     }
 
 	std::cout << "[flashgui] Process " << pid << " analyzed successfully." << std::endl;
@@ -70,6 +72,7 @@ static unsigned __stdcall entry_function(void* param) {
 
 	std::cout << "[flashgui] Exiting..." << std::endl;
 
+exit:
     shutdown_console();
 
 	FreeLibrary(module_handle); // Free the DLL module handle
@@ -78,7 +81,7 @@ static unsigned __stdcall entry_function(void* param) {
     return 0;
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule,
+BOOL APIENTRY DllMain(HMODULE h_module,
     DWORD  ul_reason_for_call,
     LPVOID lpReserved
 )
@@ -86,9 +89,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        DisableThreadLibraryCalls(hModule);
+        DisableThreadLibraryCalls(h_module);
         {
-            uintptr_t h_thread = _beginthreadex(nullptr, 0, &entry_function, hModule, 0, nullptr);
+            uintptr_t h_thread = _beginthreadex(nullptr, 0, &entry_function, h_module, 0, nullptr);
             if (h_thread) {
                 CloseHandle((HANDLE)h_thread);
             }
@@ -101,4 +104,3 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     }
     return TRUE;
 }
-

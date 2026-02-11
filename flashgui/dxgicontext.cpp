@@ -154,7 +154,7 @@ void s_dxgicontext::create_srv_heap() {
 
 	for (auto& buffer : back_buffers) {
 		if (buffer) {
-			srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
+			//srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
 		}
 	}
 }
@@ -164,28 +164,33 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 		throw std::runtime_error("Swapchain is not initialized, cannot resize backbuffers");
 	}
 
-	//release backbuffers, rtv_heap, and srv_heap
+	//Release backbuffers
 	for (auto& buffer : back_buffers) {
 		srv->free_if_backbuffer(buffer.Get());
 		buffer.Reset();
 	}
 	back_buffers.clear();
+
+	//Release rtv heap
 	rtv_heap.Reset();
 
 	try {
+		//call swapchain resize buffers
 		HRESULT hr = swapchain->ResizeBuffers(buffer_count, width, height, format, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		if (FAILED(hr)) {
 			throw std::runtime_error("Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr));
 		}
+
 		create_rtv_heap(); // Recreate RTV heap after resizing
 		create_backbuffers(); // Recreate backbuffers after resizing
 
 		for (auto& buffer : back_buffers) {
-			srv->allocate_backbuffer_srv(buffer, format);
+			if (srv && buffer)
+				srv->allocate_backbuffer_srv(buffer, format);
 		}
 	}
-	catch (const std::exception& e) {
-		throw std::runtime_error(std::string("Error during backbuffer resize: ") + e.what());
+	catch (...) {
+		std::throw_with_nested(std::runtime_error("Error during backbuffer resize"));
 	}
 }
 
@@ -265,9 +270,31 @@ void s_dxgicontext::create_pipeline() {
 
 	shaders->initialize(device);
 
+	// One SRV range: t0, space0, 1 descriptor
+	D3D12_DESCRIPTOR_RANGE1 srv_range{};
+	srv_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srv_range.NumDescriptors = 1;
+	srv_range.BaseShaderRegister = 0; // t0
+	srv_range.RegisterSpace = 0;
+	srv_range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+	srv_range.OffsetInDescriptorsFromTableStart = 0;
+
+	// One static sampler: s0
+	D3D12_STATIC_SAMPLER_DESC samp{};
+	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // changed from MIN_MAG_MIP_LINEAR to POINT
+	samp.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samp.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	samp.MaxLOD = D3D12_FLOAT32_MAX;
+	samp.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	samp.ShaderRegister = 0; // s0
+	samp.RegisterSpace = 0;
+	samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	root_sig = c_rootsig_builder(device)
-		.add_root_cbv(0, D3D12_SHADER_VISIBILITY_ALL) // Add a root constant buffer view
+		.add_root_cbv(0, D3D12_SHADER_VISIBILITY_ALL)                  // b0
+		.add_descriptor_table({ srv_range }, D3D12_SHADER_VISIBILITY_PIXEL) // param 1: SRV table (t0)
+		.add_static_sampler(samp)
 		.build();
 
 	if (!root_sig) 
@@ -284,6 +311,7 @@ void s_dxgicontext::create_pipeline() {
 		{ "TEXCOORD",   4, DXGI_FORMAT_R32_FLOAT,       1, 20, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_stroke
 		{ "TEXCOORD",   5, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_clr
 		{ "TEXCOORD",   6, DXGI_FORMAT_R32_UINT,        1, 40, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_type
+		{ "TEXCOORD",   7, DXGI_FORMAT_R32G32B32A32_FLOAT,    1, 44, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 } // inst_uv
 	};
 
 	pso_triangle = c_pso_builder(device)

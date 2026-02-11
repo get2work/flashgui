@@ -158,8 +158,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="dxgicontext.h" />
+    <ClInclude Include="fonts.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="frame_resource.hpp" />
+    <ClInclude Include="gui.h" />
     <ClInclude Include="include\flashgui.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="procmanager.h" />
@@ -172,6 +174,7 @@
   <ItemGroup>
     <ClCompile Include="dxgicontext.cpp" />
     <ClCompile Include="flashgui.cpp" />
+    <ClCompile Include="gui.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
