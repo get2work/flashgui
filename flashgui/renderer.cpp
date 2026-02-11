@@ -247,10 +247,23 @@ void c_renderer::resize_frame() {
 
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
+// use m_last_frame_time to calculate delta time for fps calculation and animations if needed.
+int c_renderer::get_fps() {
+	return static_cast<int>(m_fps);
+}
 
+// Called at the beginning of each frame. Prepares command list and render target.
 void c_renderer::begin_frame() {
+	/*//check if we are at a new second (milliseconds = 0)
+	if (std::chrono::steady_clock::now()) {
+		m_fps = m_frame_count; // Update FPS with the count from the last second
+		m_frame_count = 0;
+	}
+	else {
+		m_frame_count++; // Increment frame count for the current second
+	}
+	*/
     frame_resource& fr = m_frame_resources[m_frame_index];
-
     if (process->needs_resize()) {
         fr.signal(m_dx.cmd_queue);
         fr.wait_for_gpu();
@@ -267,11 +280,13 @@ void c_renderer::begin_frame() {
     auto& cmd = fr.command_list;
 
 	ID3D12DescriptorHeap* heaps[] = { m_dx.srv->m_heap.Get() };
-	cmd->SetDescriptorHeaps(1, heaps);
 
+	cmd->SetDescriptorHeaps(1, heaps);
     cmd->SetGraphicsRootSignature(m_dx.root_sig.Get());
+
     fr.cb_gpu_va = fr.push_cb(&m_transform_cb, sizeof(m_transform_cb));
-    cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
+
+	cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
 	cmd->SetGraphicsRootDescriptorTable(1, m_font_srv);
     cmd->RSSetViewports(1, &m_viewport);
     cmd->RSSetScissorRects(1, &m_scissor_rect);
@@ -281,6 +296,7 @@ void c_renderer::begin_frame() {
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET
     );
+
     cmd->ResourceBarrier(1, &to_rtv);
 
     auto rtv_handle = m_dx.get_rtv_handle(m_frame_index);
@@ -289,6 +305,7 @@ void c_renderer::begin_frame() {
     cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
 	D3D12_RECT clear_rect = { 0, 0, process->window.get_width(), process->window.get_height() };
 	cmd->ClearRenderTargetView(rtv_handle, clear_color, 1, &clear_rect);
+
 }
 
 void c_renderer::end_frame() {

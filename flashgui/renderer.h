@@ -60,6 +60,8 @@ namespace fgui {
 		void add_circle(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
 		void add_circle_outline(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
 		void draw_text(const std::string& text, DirectX::XMFLOAT2 pos, float scale, DirectX::XMFLOAT4 clr);
+
+		int get_fps();
 	private:
 
 		void initialize_fonts();
@@ -84,7 +86,10 @@ namespace fgui {
 		std::vector<shape_instance> instances_circle;
 
 		uint32_t m_frame_index = 0; // Current frame index
-		
+
+		uint32_t m_frame_count = 0; // Total frame count this second
+		int m_fps = 0; // FPS value
+
 		D3D12_VIEWPORT m_viewport = {}; // Viewport for rendering
 		D3D12_RECT m_scissor_rect = {}; // Scissor rectangle for rendering
 

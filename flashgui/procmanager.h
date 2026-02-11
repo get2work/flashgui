@@ -48,6 +48,8 @@ namespace fgui {
 		DWORD m_pid = 0;
 		HINSTANCE m_hinstance = nullptr;
 		bool m_needs_resize = false;
+
+		bool m_minimized = false;
 	};
 
 	struct hook_data {

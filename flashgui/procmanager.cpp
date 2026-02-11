@@ -76,6 +76,12 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 		return 0;
 	case WM_SIZE:
 	{
+		m_minimized = (wparam == SIZE_MINIMIZED);
+
+		if (m_minimized) {
+			return 0; // Skip resizing when minimized
+		}
+
 		RECT new_rect = {};
 		if (GetClientRect(hwnd, &new_rect)) {
 			int new_width = new_rect.right - new_rect.left;

@@ -50,7 +50,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->add_quad({ 0.f, 0.f }, fgui::process->window.get_size(), {0.05f, 0.05f, 0.1f, 1.f});
 
 		//text
-		fgui::render->draw_text("FlashGUI Test Window", {200.f, 50.f}, 1.0f, {0.f, 1.f, 1.f, 1.f});
+		fgui::render->draw_text("FlashGUI Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200.f, 50.f}, 1.0f, {0.f, 1.f, 1.f, 1.f});
 		fgui::render->end_frame();
 	}
 
