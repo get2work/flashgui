@@ -55,6 +55,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		background->size = fgui::process->window.get_size();
 		// sample immediate mode circle outline, should be drawn on top of the background quad
 		fgui::render->draw_circle_outline({ 140, 30 }, { 50, 50 }, { 1.f, 0.7f, 0.7f, 1.f }, 0.f, 5.f);
+
 		// Draw some test text with the current FPS in cyan color
 		fgui::render->draw_text("FlashGUI Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, 1.0f, {0.f, 1.f, 1.f, 1.f});
 		fgui::render->end_frame();

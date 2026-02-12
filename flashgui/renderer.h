@@ -75,6 +75,7 @@ namespace fgui {
 		shape_instance* add_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
 		shape_instance* add_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
 		
+		void remove_shape(shape_instance* instance);
 		void draw_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);
 		void draw_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width = 1.f, float rotation = 0.f);
 		void draw_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width = 1.f);

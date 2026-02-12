@@ -202,7 +202,6 @@ void c_renderer::initialize_fonts()
 	}
 }
 
-
 void c_renderer::resize_frame() {
 
 	//release all frame specific resources
@@ -309,6 +308,7 @@ void c_renderer::begin_frame() {
 
 }
 
+//TODO: optimize by multithreading upload and draw calls, and merging persistent instances into a single buffer updated only when instances change, while keeping immediate instances in a per-frame upload heap.
 void c_renderer::end_frame() {
 	if (process->needs_resize()) {
 		// Reset the resize flag
@@ -409,6 +409,14 @@ void c_renderer::end_frame() {
 	// increment the frame index
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 	fr.signal(m_dx.cmd_queue);
+}
+
+void c_renderer::remove_shape(shape_instance* instance) {
+	auto it = std::find_if(instances.begin(), instances.end(),
+		[instance](const shape_instance& inst) { return &inst == instance; });
+	if (it != instances.end()) {
+		instances.erase(it);
+	}
 }
 
 shape_instance* c_renderer::add_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
