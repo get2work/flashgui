@@ -5,6 +5,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 #include <wrl/client.h>
+#include "vec2.h"
 
 namespace fgui {
 	class c_process {
@@ -26,12 +27,13 @@ namespace fgui {
 			long get_width() const {
 				return rect.right - rect.left;
 			}
+
 			long get_height() const {
 				return rect.bottom - rect.top;
 			}
 
-			DirectX::XMFLOAT2 get_size() const {
-				return { static_cast<float>(get_width()), static_cast<float>(get_height()) };
+			vec2i get_size() const {
+				return vec2i(static_cast<int>(get_width()), static_cast<int>(get_height()));
 			}
 
 			long get_posx() const {

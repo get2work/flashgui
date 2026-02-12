@@ -9,6 +9,8 @@ namespace fgui {
 	std::unique_ptr<c_renderer> render = nullptr;
 	uint32_t target_buffer_count = 4;
 	std::unique_ptr<c_process> process;
+	hook_data hk::hookinfo = {};
+
 	//
 	bool initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
 		if (!render) {
@@ -39,8 +41,6 @@ namespace fgui {
 	hook_data hk::get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
 		process = std::make_unique<c_process>(false, pid, module_handle, in_hwnd, in_rect);
 		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(process.get()));
-
-		hook_data hookinfo = {};
 
 		ComPtr<IDXGIFactory7> dxgi_factory;
 		UINT dxgi_factory_flags = 0;

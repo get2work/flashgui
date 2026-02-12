@@ -9,6 +9,7 @@
         "xinput1-3"
       ]
     },
+    "minhook",
     "directx-headers",
     "directx-dxc"
   ]

@@ -1,5 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
+#include "hooks.h"
 
 static void init_console() {
     // Try to attach to a parent console (e.g., if launched from cmd). If none, create a new one.
@@ -65,10 +66,25 @@ static unsigned __stdcall entry_function(void* param) {
 	std::cout << "[flashgui] Present function address: " << hookinfo.p_present << std::endl;
 	std::cout << "[flashgui] ResizeBuffers function address: " << hookinfo.p_resizebuffers << std::endl;
 
+	MH_Initialize();
+	MH_CreateHook(hookinfo.p_present, &hk::present, nullptr);
+	MH_CreateHook(hookinfo.p_resizebuffers, &hk::resize_buffers, nullptr);
+	MH_EnableHook(MH_ALL_HOOKS);
+
     while (true) {
+        if (GetAsyncKeyState(VK_END) & 1) { // Press END key to exit
+            std::cout << "[flashgui] END key pressed, exiting..." << std::endl;
+            break;
+		}
+
+
+
         // Main loop for the DLL, can be used to update GUI or handle events
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep to avoid busy-waiting
 	}
+
+	MH_DisableHook(MH_ALL_HOOKS);
+	MH_Uninitialize();
 
 	std::cout << "[flashgui] Exiting..." << std::endl;
 

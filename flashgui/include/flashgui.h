@@ -14,9 +14,6 @@ namespace fgui {
 	*/
 	bool initialize(IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr);
 
-	/*
-	* @brief namespace for relevant function templates.
-	*/
 	namespace hk {
 		using fn_present = HRESULT(WINAPI*)(IDXGISwapChain* p_this, UINT sync_interval, UINT flags);
 		using fn_resize_buffers = HRESULT(WINAPI*)(IDXGISwapChain* p_this, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT new_format, UINT swapchain_flags);
@@ -28,7 +25,8 @@ namespace fgui {
 		* @throws std::runtime_error if the process cannot be analyzed or if the swapchain cannot be found.
 		*/
 		hook_data get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd = nullptr, RECT in_rect = RECT{});
-	
+		
+		extern hook_data hookinfo; // Only need for command queue offset
 	}
 
 	extern std::unique_ptr<c_renderer> render;

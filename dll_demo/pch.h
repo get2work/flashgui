@@ -19,7 +19,7 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
-
+#include <MinHook.h>
 #include <flashgui.h>
 
 #pragma comment(lib, "flashgui.lib")

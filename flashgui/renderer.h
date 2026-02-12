@@ -110,6 +110,8 @@ namespace fgui {
 
 		uint32_t m_frame_index = 0; // Current frame index
 
+		vec2i m_cursor_pos; // Current cursor position	
+
 		uint32_t m_frame_count = 0; // Total frame count this second
 		int m_fps = 0; // FPS value
 		std::chrono::steady_clock::time_point m_last_fps_update; // Last time FPS was updated
