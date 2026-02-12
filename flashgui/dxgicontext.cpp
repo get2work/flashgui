@@ -21,9 +21,7 @@ void s_dxgicontext::initialize_hooked() {
 		throw std::runtime_error("Failed to get device from swapchain, HRESULT: " + std::to_string(hr));
 	}
 
-	create_rtv_heap();
-	create_backbuffers();
-	create_srv_heap();
+	create_resources();
 	create_quad_buffers();
 }
 
@@ -31,9 +29,7 @@ void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 	buffer_count = target_buf_count;
 
 	create_device_and_swapchain();
-	create_rtv_heap();
-	create_backbuffers();
-	create_srv_heap();
+	create_resources();
 	create_quad_buffers();
 }
 
@@ -145,34 +141,43 @@ void s_dxgicontext::create_backbuffers() {
 
 void s_dxgicontext::create_srv_heap() {
 
+	//survives resizebuffers
 	if (!srv) {
 		srv = std::make_unique<c_srv_allocator>();
-	}
 
-	//use srv allocator class
-	srv->initialize(device, 128, buffer_count); // Initialize with a reasonable number of descriptors
+		// Initialize with a reasonable number of descriptors
+		srv->initialize(device, 128, buffer_count);
+	}
 
 	for (auto& buffer : back_buffers) {
 		if (buffer) {
-			//srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
+			srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
 		}
 	}
 }
 
-void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) {
-	if (!swapchain) {
-		throw std::runtime_error("Swapchain is not initialized, cannot resize backbuffers");
-	}
-
-	//Release backbuffers
+void s_dxgicontext::release_resources() {
+	// Release backbuffers
 	for (auto& buffer : back_buffers) {
 		srv->free_if_backbuffer(buffer.Get());
 		buffer.Reset();
 	}
 	back_buffers.clear();
 
-	//Release rtv heap
+	// Release RTV heap
 	rtv_heap.Reset();
+}
+
+void s_dxgicontext::create_resources() {
+	create_rtv_heap();
+	create_backbuffers();
+	create_srv_heap();
+}
+
+void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) {
+	if (!swapchain) {
+		throw std::runtime_error("Swapchain is not initialized, cannot resize backbuffers");
+	}
 
 	try {
 		//call swapchain resize buffers
@@ -181,13 +186,6 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 			throw std::runtime_error("Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr));
 		}
 
-		create_rtv_heap(); // Recreate RTV heap after resizing
-		create_backbuffers(); // Recreate backbuffers after resizing
-
-		for (auto& buffer : back_buffers) {
-			if (srv && buffer)
-				srv->allocate_backbuffer_srv(buffer, format);
-		}
 	}
 	catch (...) {
 		std::throw_with_nested(std::runtime_error("Error during backbuffer resize"));

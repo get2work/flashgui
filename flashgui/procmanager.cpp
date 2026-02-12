@@ -3,6 +3,46 @@
 
 using namespace fgui;
 
+
+struct parameters {
+	DWORD process_id = 0;
+	HWND window_handle = nullptr;
+};
+
+static auto find_current_process_window(DWORD pid) -> HWND
+{
+	parameters params;
+	params.process_id = pid;
+
+	EnumWindows(
+		[](HWND hwnd, LPARAM lParam) -> BOOL {
+			auto params = reinterpret_cast<parameters*>(lParam);
+			DWORD process_id = 0;
+			GetWindowThreadProcessId(hwnd, &process_id);
+
+			// Filter: matching PID, visible, not minimized
+			if (process_id == params->process_id /* &&
+				IsWindowVisible(hwnd) &&
+				!IsIconic(hwnd)*/) {
+
+				char class_name[256] = {};
+				GetClassNameA(hwnd, class_name, sizeof(class_name));
+				printf("Class name: %s\n", class_name);
+
+				// Filter out the console window
+				if (strcmp(class_name, "ConsoleWindowClass") != 0) {
+					params->window_handle = hwnd;
+					return FALSE;
+				}
+			}
+
+			return TRUE;
+
+		}, reinterpret_cast<LPARAM>(&params));
+
+	return params.window_handle;
+}
+
 c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
 	if (create_window) {
 		WNDCLASSEXA wc = {};
@@ -45,22 +85,10 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 		UpdateWindow(window.handle); // Update the window to ensure it is drawn
 	}
 	else if (!in_hwnd) {
-		EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL {
-			c_process* data = reinterpret_cast<c_process*>(lParam);
-			DWORD pid = 0;
-			GetWindowThreadProcessId(hwnd, &pid);
 
-			if (pid == data->get_pid() && !IsIconic(hwnd)) {
-				char class_name[256]{};
-				GetClassNameA(hwnd, class_name, sizeof(class_name));
-
-				if (strcmp(class_name, "ConsoleWindowwClass") != 0) {
-					data->window.handle = hwnd;
-					return FALSE;
-				}
-			}
-			return TRUE; // Continue enumerating
-			}, reinterpret_cast<LPARAM>(this));
+		while (!window.handle) {
+			window.handle = find_current_process_window(pid);
+		}
 
 		if (window.handle && in_rect.left == 0 && in_rect.top == 0 && in_rect.right == 0 && in_rect.bottom == 0) {
 			GetWindowRect(window.handle, &window.rect);

@@ -22,6 +22,10 @@ namespace fgui {
 		bool transient = false; // Indicates if the entry is transient (temporary) or persistent
 	};
 
+	/// <summary>
+	/// A class responsible for managing a descriptor heap for shader resource views (SRVs) in DirectX 12.
+	/// Uses a free list to efficiently allocate and deallocate descriptors, and supports transient descriptors that are automatically freed at the end of each frame.
+	/// 
 	class c_srv_allocator {
 	public:
 		~c_srv_allocator() {

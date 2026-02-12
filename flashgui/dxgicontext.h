@@ -61,9 +61,14 @@ namespace fgui {
 		UINT num_quality_levels = 0;
 		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
 
+		UINT sync_interval = 0; // V-sync off by default
+		UINT swapchain_flags = 0; // No special flags by default
+
 		void create_device_and_swapchain();
 		void create_rtv_heap();
 		void create_srv_heap();
+		void release_resources();
+		void create_resources();
 		void create_backbuffers();
 		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
 

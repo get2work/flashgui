@@ -62,11 +62,15 @@ namespace fgui {
 		}
 		~c_renderer() = default;
 
-		void initialize(IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr);
+		void initialize(IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr, UINT sync_interval = 1, UINT flags = 0);
 
-		void resize_frame();
 		void begin_frame();
 		void end_frame();
+		void post_present(const HRESULT& present_result);
+
+		void release_resources();
+
+		void create_resources(bool create_heap_and_buffers = true);
 
 		//draw functions
 		shape_instance* add_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width = 0.f, float rotation = 0.f);

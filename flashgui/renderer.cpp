@@ -12,13 +12,15 @@ LRESULT CALLBACK hk::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 	return DefWindowProcA(hwnd, msg, wparam, lparam);
 }
 
-void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
+void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue, UINT sync_interval, UINT flags) {
 	m_mode = (swapchain && cmd_queue) ? render_mode::hooked : render_mode::standalone;
 
 	try {
 		if (m_mode == render_mode::hooked) {
 			m_dx.swapchain = swapchain;
 			m_dx.cmd_queue = cmd_queue;
+			m_dx.swapchain_flags = flags;
+			m_dx.sync_interval = sync_interval;
 
 			if (!process->window.handle) {
 				throw std::runtime_error("Window handle cannot be null in hooked mode");
@@ -34,33 +36,7 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 
 		m_dx.create_pipeline();
 
-		const float width = static_cast<float>(process->window.get_width());
-		const float height = static_cast<float>(process->window.get_height());
-
-		m_viewport = {
-			0.0f, 0.0f,
-			width, height,
-			0.0f, 1.0f
-		};
-
-		m_scissor_rect = {
-			0l, 0l,
-			process->window.get_width(),
-			process->window.get_height()
-		};
-
-		// Initialize frame resources
-		for (auto& fr : m_frame_resources) {
-			fr.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
-		}
-
-		m_transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
-			0.0f, width,   // left, right
-			height, 0.0f, // bottom, top
-			0.0f, 1.0f   // near, far
-		);
-
-		m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
+		create_resources(false);
 
 		//initialize fonts
 		initialize_fonts();
@@ -202,30 +178,28 @@ void c_renderer::initialize_fonts()
 	}
 }
 
-void c_renderer::resize_frame() {
-
-	//release all frame specific resources
+void c_renderer::release_resources() {
 	for (auto& fr : m_frame_resources) {
-		fr.release(); // Reset command allocators and command lists
+		fr.release();
 	}
+
+	m_dx.release_resources();
+}
+
+void c_renderer::create_resources(bool create_heap_and_buffers) {
+
+	if (create_heap_and_buffers)
+		m_dx.create_resources();
 
 	//store window size as long
 	long width = process->window.get_width(), height = process->window.get_height();
-
-	//exception wrapped resize_buffers 
-	try {
-		m_dx.resize_backbuffers(width, height);
-	}
-	catch (const std::exception& e) {
-		std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
-	}
 
 	for (auto& frame : m_frame_resources)
 		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
 
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);
-	
+
 	m_viewport = {
 		0.0f, 0.0f,
 		fwidth, fheight,
@@ -246,6 +220,7 @@ void c_renderer::resize_frame() {
 
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
+
 // use m_last_frame_time to calculate delta time for fps calculation and animations if needed.
 int c_renderer::get_fps() const {
 	return m_fps;
@@ -264,16 +239,33 @@ void c_renderer::begin_frame() {
 	}
 	
     frame_resource& fr = m_frame_resources[m_frame_index];
-    if (process->needs_resize()) {
+    if (process->needs_resize() && m_mode == fgui::render_mode::standalone) {
         fr.signal(m_dx.cmd_queue);
         fr.wait_for_gpu();
-        resize_frame();
+        
+		release_resources();
+
+		//store window size as long
+		long width = process->window.get_width(), height = process->window.get_height();
+
+		//exception wrapped resize_buffers 
+		try {
+			m_dx.resize_backbuffers(width, height);
+		}
+		catch (const std::exception& e) {
+			std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
+		}
+
+		create_resources();
+
         return;
     }
 
 	m_dx.srv->begin_frame(m_frame_index);
 
-    fr.wait_for_gpu();
+	if (m_mode == render_mode::standalone)
+		fr.wait_for_gpu();
+
     fr.reset_upload_cursor();
     fr.reset(m_dx.pso_triangle);
 
@@ -393,22 +385,32 @@ void c_renderer::end_frame() {
 	ID3D12CommandList* cmd_lists[] = { cmd.Get() };
 	m_dx.cmd_queue->ExecuteCommandLists(1, cmd_lists);
 
-	// present the swapchain
-	HRESULT hr = m_dx.swapchain->Present(0, 0);
-	
-	if (FAILED(hr)) {
-		std::cerr << "Failed to present swapchain HRSESULT:" << hr << std::endl;
-		
-		//directx device was removed
-		if (m_dx.device && hr == DXGI_ERROR_DEVICE_REMOVED) {
-			HRESULT reason = m_dx.device->GetDeviceRemovedReason();
-			std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
-		}
-	}
-
-	// increment the frame index
-	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 	fr.signal(m_dx.cmd_queue);
+
+	if (m_mode == render_mode::standalone) {
+		// present the swapchain
+		HRESULT hr = m_dx.swapchain->Present(m_dx.sync_interval, m_dx.swapchain_flags);
+
+		if (FAILED(hr)) {
+			std::cerr << "Failed to present swapchain HRSESULT:" << hr << std::endl;
+
+			//directx device was removed
+			if (m_dx.device && hr == DXGI_ERROR_DEVICE_REMOVED) {
+				HRESULT reason = m_dx.device->GetDeviceRemovedReason();
+				std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
+			}
+		}
+
+		// In standalone mode, we can wait for the GPU to finish before starting the next frame
+		if (m_dx.swapchain)
+			m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
+	}
+}
+
+void c_renderer::post_present(const HRESULT& present_result) {
+	// increment the frame index
+	if (m_dx.swapchain)
+	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
 }
 
 void c_renderer::remove_shape(shape_instance* instance) {
