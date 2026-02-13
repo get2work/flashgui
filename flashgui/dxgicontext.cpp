@@ -177,7 +177,7 @@ void s_dxgicontext::create_resources() {
 	create_srv_heap();
 }
 
-void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) {
+void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) const {
 	if (!swapchain) {
 		throw std::runtime_error("Swapchain is not initialized, cannot resize backbuffers");
 	}
@@ -199,20 +199,17 @@ void s_dxgicontext::create_quad_buffers() {
 	// --- Vertex Buffer ---
 	const UINT vb_size = sizeof(quad_vertices);
 
-	D3D12_HEAP_PROPERTIES heap_props = {};
-	heap_props.Type = D3D12_HEAP_TYPE_UPLOAD;
+	D3D12_HEAP_PROPERTIES upload_heap = {};
+	upload_heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+	upload_heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	upload_heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
-	D3D12_RESOURCE_DESC vb_desc = {};
-	vb_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	vb_desc.Width = vb_size;
-	vb_desc.Height = 1;
-	vb_desc.DepthOrArraySize = 1;
-	vb_desc.MipLevels = 1;
-	vb_desc.SampleDesc.Count = 1;
-	vb_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	D3D12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
+	//allow render target
+	vb_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	HRESULT hr = device->CreateCommittedResource(
-		&heap_props,
+		&upload_heap,
 		D3D12_HEAP_FLAG_NONE,
 		&vb_desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
@@ -240,7 +237,7 @@ void s_dxgicontext::create_quad_buffers() {
 	ib_desc.Width = ib_size;
 
 	hr = device->CreateCommittedResource(
-		&heap_props,
+		&upload_heap,
 		D3D12_HEAP_FLAG_NONE,
 		&ib_desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
@@ -267,7 +264,7 @@ void s_dxgicontext::create_pipeline() {
 		throw std::runtime_error("D3D12 device is not initialized, cannot create root signature and PSO");
 
 	if (!shaders)
-		shaders = std::make_unique<c_shader_builder>();
+		shaders = std::make_unique<c_shader_loader>();
 
 	shaders->initialize(device);
 
@@ -317,8 +314,8 @@ void s_dxgicontext::create_pipeline() {
 
 	pso_triangle = c_pso_builder(device)
 		.set_root_signature(root_sig.Get())
-		.set_vertex_shader(shaders->get_shader_blob(shader_type::vertex))
-		.set_pixel_shader(shaders->get_shader_blob(shader_type::pixel))
+		.set_vertex_shader(shaders->get_vs_blob())
+		.set_pixel_shader(shaders->get_ps_blob())
 		.set_input_layout(input_layout)
 		.set_rtv_format(0, dxgiformat)
 		.disable_depth()

@@ -9,7 +9,7 @@
 #include "srv_allocator.hpp"
 #include "procmanager.h"
 
-#include "shader_compiler.hpp"
+#include "shader_loader.hpp"
 #include "root_sig_builder.hpp"
 #include "pso_builder.hpp"
 
@@ -43,7 +43,7 @@ namespace fgui {
 		ComPtr<ID3D12PipelineState> pso_triangle; // Pipeline state object for triangles
 
 		std::unique_ptr<c_srv_allocator> srv; // Shader resource view allocator
-		std::unique_ptr<c_shader_builder> shaders; // Shader compiler and manager
+		std::unique_ptr<c_shader_loader> shaders; // Shader loader
 
 		ComPtr<ID3D12DescriptorHeap> rtv_heap; // Render target view heap
 
@@ -73,7 +73,7 @@ namespace fgui {
 		void release_resources();
 		void create_resources();
 		void create_backbuffers();
-		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM);
+		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) const;
 
 		void create_quad_buffers();
 		

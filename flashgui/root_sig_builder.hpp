@@ -3,7 +3,6 @@
 #include <d3d12.h>
 #include <string>
 #include <vector>
-#include <directx-dxc/dxcapi.h>
 #include <iostream>
 #include <stdexcept>
 #include <directx/d3dx12.h>

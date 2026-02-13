@@ -3,13 +3,12 @@
 #include <d3d12.h>
 #include <string>
 #include <vector>
-#include <directx-dxc/dxcapi.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
-#include "shader_compiler.hpp"
+//#include "shader_loader.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -44,11 +43,11 @@ namespace fgui {
 			m_input_elements = {};
 			m_input_layout = {};
 		}
-		c_pso_builder& set_vertex_shader(const ComPtr<IDxcBlob>& shader_blob) {
+		c_pso_builder& set_vertex_shader(const ComPtr<ID3DBlob>& shader_blob) {
 			m_vertex_shader = shader_blob;
 			return *this;
 		}
-		c_pso_builder& set_pixel_shader(const ComPtr<IDxcBlob>& shader_blob) {
+		c_pso_builder& set_pixel_shader(const ComPtr<ID3DBlob>& shader_blob) {
 			m_pixel_shader = shader_blob;
 			return *this;
 		}
@@ -234,8 +233,8 @@ namespace fgui {
 
 	private:
 		ComPtr<ID3D12Device> m_device = nullptr;
-		ComPtr<IDxcBlob> m_vertex_shader;
-		ComPtr<IDxcBlob> m_pixel_shader;
+		ComPtr<ID3DBlob> m_vertex_shader;
+		ComPtr<ID3DBlob> m_pixel_shader;
 		ComPtr<ID3D12RootSignature> m_root_signature;
 		D3D12_RASTERIZER_DESC m_rasterizer_desc;
 		D3D12_BLEND_DESC m_blend_desc;

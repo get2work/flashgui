@@ -10,7 +10,6 @@
       ]
     },
     "minhook",
-    "directx-headers",
-    "directx-dxc"
+    "directx-headers"
   ]
 }

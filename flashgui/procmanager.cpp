@@ -40,7 +40,7 @@ static BOOL CALLBACK enum_callback(HWND hwnd, LPARAM lparam) {
 	return TRUE;
 }
 
-HWND find_process_window(DWORD pid, const char* class_name = nullptr) {
+static HWND find_process_window(DWORD pid, const char* class_name = nullptr) {
 	enum_params params = { pid, nullptr };
 	if (class_name) strcpy_s(params.target_class, class_name);
 
