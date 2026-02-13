@@ -4,43 +4,48 @@
 using namespace fgui;
 
 
-struct parameters {
-	DWORD process_id = 0;
-	HWND window_handle = nullptr;
+struct enum_params {
+	DWORD target_pid;
+	HWND found_hwnd;
+	char target_class[256];  // Optional class filter
 };
 
-static auto find_current_process_window(DWORD pid) -> HWND
-{
-	parameters params;
-	params.process_id = pid;
+static BOOL CALLBACK enum_callback(HWND hwnd, LPARAM lparam) {
+	enum_params* params = reinterpret_cast<enum_params*>(lparam);
+	DWORD pid;
+	GetWindowThreadProcessId(hwnd, &pid);
 
-	EnumWindows(
-		[](HWND hwnd, LPARAM lParam) -> BOOL {
-			auto params = reinterpret_cast<parameters*>(lParam);
-			DWORD process_id = 0;
-			GetWindowThreadProcessId(hwnd, &process_id);
+	if (pid == params->target_pid) {
+		
+		char cls[256];
+		GetClassNameA(hwnd, cls, 256);
+		OutputDebugStringA(("DLL Enum: PID=" + std::to_string(pid) + " Class=" + cls + "\n").c_str());
 
-			// Filter: matching PID, visible, not minimized
-			if (process_id == params->process_id /* &&
-				IsWindowVisible(hwnd) &&
-				!IsIconic(hwnd)*/) {
+		// Skip console
+		if (strcmp(cls, "ConsoleWindowClass") == 0) return TRUE;
 
-				char class_name[256] = {};
-				GetClassNameA(hwnd, class_name, sizeof(class_name));
-				printf("Class name: %s\n", class_name);
+		// Match your class OR title OR largest visible
+		if (params->target_class[0] && strcmp(cls, params->target_class) == 0) {
+			params->found_hwnd = hwnd;
+			return FALSE;  // Stop
+		}
 
-				// Filter out the console window
-				if (strcmp(class_name, "ConsoleWindowClass") != 0) {
-					params->window_handle = hwnd;
-					return FALSE;
-				}
-			}
+		char title[256];
+		GetWindowTextA(hwnd, title, 256);
+		if (strlen(title) > 3) {  // Has title = main window
+			params->found_hwnd = hwnd;
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 
-			return TRUE;
+HWND find_process_window(DWORD pid, const char* class_name = nullptr) {
+	enum_params params = { pid, nullptr };
+	if (class_name) strcpy_s(params.target_class, class_name);
 
-		}, reinterpret_cast<LPARAM>(&params));
-
-	return params.window_handle;
+	EnumWindows(enum_callback, reinterpret_cast<LPARAM>(&params));
+	return params.found_hwnd;
 }
 
 c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
@@ -85,16 +90,15 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 		UpdateWindow(window.handle); // Update the window to ensure it is drawn
 	}
 	else if (!in_hwnd) {
+		window.handle = find_process_window(pid, "FlashGUIWindowClass");
 
-		while (!window.handle) {
-			window.handle = find_current_process_window(pid);
-		}
+		if (!window.handle)
+			printf("Failed to find window for PID %d\n", pid);
 
 		if (window.handle && in_rect.left == 0 && in_rect.top == 0 && in_rect.right == 0 && in_rect.bottom == 0) {
 			GetWindowRect(window.handle, &window.rect);
 		}
 	}
-
 }
 
 LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {

@@ -195,7 +195,7 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 	long width = process->window.get_width(), height = process->window.get_height();
 
 	for (auto& frame : m_frame_resources)
-		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 64));
+		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
 
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);
@@ -224,6 +224,13 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 // use m_last_frame_time to calculate delta time for fps calculation and animations if needed.
 int c_renderer::get_fps() const {
 	return m_fps;
+}
+
+void c_renderer::wait_for_gpu() {
+	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();
+	frame_resource& fr = m_frame_resources[m_frame_index];
+	fr.signal(m_dx.cmd_queue);
+	fr.wait_for_gpu();
 }
 
 // Called at the beginning of each frame. Prepares command list and render target.
@@ -266,7 +273,7 @@ void c_renderer::begin_frame() {
 	if (m_mode == render_mode::standalone)
 		fr.wait_for_gpu();
 
-    fr.reset_upload_cursor();
+	fr.reset_upload_cursor();
     fr.reset(m_dx.pso_triangle);
 
     auto& cmd = fr.command_list;
@@ -281,6 +288,8 @@ void c_renderer::begin_frame() {
 	cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
 	cmd->SetGraphicsRootDescriptorTable(1, m_font_srv);
     cmd->RSSetViewports(1, &m_viewport);
+
+
     cmd->RSSetScissorRects(1, &m_scissor_rect);
 
     D3D12_RESOURCE_BARRIER to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -296,7 +305,7 @@ void c_renderer::begin_frame() {
 
     cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
 	D3D12_RECT clear_rect = { 0, 0, process->window.get_width(), process->window.get_height() };
-	cmd->ClearRenderTargetView(rtv_handle, clear_color, 1, &clear_rect);
+	//cmd->ClearRenderTargetView(rtv_handle, clear_color, 1, &clear_rect);
 
 }
 
@@ -376,9 +385,12 @@ void c_renderer::end_frame() {
 	//set resource barrier for present transition
 	cmd->ResourceBarrier(1, &to_present);
 
-	// close the command list
-	if (FAILED(cmd->Close())) {
-		throw std::runtime_error("Failed to close command list");
+	HRESULT hr = cmd->Close();
+	if (FAILED(hr)) {
+		char buf[256];
+		sprintf_s(buf, "Close FAILED: 0x%08X\n", hr);
+		OutputDebugStringA(buf);
+		return;  // DON'T ExecuteCommandLists on bad list
 	}
 
 	// execute the command list

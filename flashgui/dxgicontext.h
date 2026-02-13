@@ -46,6 +46,7 @@ namespace fgui {
 		std::unique_ptr<c_shader_builder> shaders; // Shader compiler and manager
 
 		ComPtr<ID3D12DescriptorHeap> rtv_heap; // Render target view heap
+
 		uint32_t rtv_descriptor_size = 0; // Size of render target view descriptor
 
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
@@ -63,6 +64,8 @@ namespace fgui {
 
 		UINT sync_interval = 0; // V-sync off by default
 		UINT swapchain_flags = 0; // No special flags by default
+
+		bool hooked = false;
 
 		void create_device_and_swapchain();
 		void create_rtv_heap();

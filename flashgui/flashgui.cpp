@@ -11,6 +11,9 @@ namespace fgui {
 	std::unique_ptr<c_process> process;
 	hook_data hk::hookinfo = {};
 
+	hk::fn_present hk::o_present = nullptr;
+	hk::fn_resize_buffers hk::o_resize_buffers = nullptr;
+
 	//
 	bool initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
 		if (!render) {

@@ -67,8 +67,8 @@ static unsigned __stdcall entry_function(void* param) {
 	std::cout << "[flashgui] ResizeBuffers function address: " << hookinfo.p_resizebuffers << std::endl;
 
 	MH_Initialize();
-	MH_CreateHook(hookinfo.p_present, &hk::present, nullptr);
-	MH_CreateHook(hookinfo.p_resizebuffers, &hk::resize_buffers, nullptr);
+	MH_CreateHook(hookinfo.p_present, &hooks::present, reinterpret_cast<LPVOID*>(&fgui::hk::o_present));
+	MH_CreateHook(hookinfo.p_resizebuffers, &hooks::resize_buffers, reinterpret_cast<LPVOID*>(&fgui::hk::o_resize_buffers));
 	MH_EnableHook(MH_ALL_HOOKS);
 
     while (true) {

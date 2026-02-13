@@ -19,12 +19,19 @@ namespace fgui {
 		using fn_resize_buffers = HRESULT(WINAPI*)(IDXGISwapChain* p_this, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT new_format, UINT swapchain_flags);
 		extern LRESULT window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
+		// original functions
+		extern fn_present o_present;
+		extern fn_resize_buffers o_resize_buffers;
+
 		/*
 		* @param data - process_data structure containing information about the process.
 		* @brief Analyzes the process to find the swapchain and command queue. Wrap in try-catch to handle exceptions.
 		* @throws std::runtime_error if the process cannot be analyzed or if the swapchain cannot be found.
 		*/
 		hook_data get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd = nullptr, RECT in_rect = RECT{});
+
+		//extern HRESULT __fastcall present(IDXGISwapChain3* p_this, UINT sync_interval, UINT flags);
+		//extern HRESULT __fastcall resize_buffers(IDXGISwapChain3* p_this, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT new_format, UINT swapchain_flags);
 		
 		extern hook_data hookinfo; // Only need for command queue offset
 	}

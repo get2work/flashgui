@@ -13,6 +13,8 @@ void s_dxgicontext::initialize_hooked() {
 		throw std::runtime_error("Failed to get swapchain description, HRESULT: " + std::to_string(hr));
 	}
 
+	hooked = true;
+
 	// get buffer count from swapchain description
 	buffer_count = swapchain_desc.BufferCount;
 
@@ -20,6 +22,8 @@ void s_dxgicontext::initialize_hooked() {
 	if (FAILED(hr)) {
 		throw std::runtime_error("Failed to get device from swapchain, HRESULT: " + std::to_string(hr));
 	}
+
+	create_rtv_heap();
 
 	create_resources();
 	create_quad_buffers();
@@ -29,6 +33,7 @@ void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 	buffer_count = target_buf_count;
 
 	create_device_and_swapchain();
+	create_rtv_heap();
 	create_resources();
 	create_quad_buffers();
 }
@@ -111,9 +116,9 @@ void s_dxgicontext::create_device_and_swapchain() {
 
 void s_dxgicontext::create_rtv_heap() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-	rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // Render target view heap
-	rtv_heap_desc.NumDescriptors = buffer_count; // Number of descriptors equal to buffer count
-	rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // No special flags
+	rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtv_heap_desc.NumDescriptors = buffer_count;
+	rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	HRESULT hr = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&rtv_heap));
 
@@ -127,6 +132,7 @@ void s_dxgicontext::create_rtv_heap() {
 
 void s_dxgicontext::create_backbuffers() {
 	back_buffers.resize(buffer_count);
+	rtv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
 	for (UINT i = 0; i < buffer_count; ++i) {
@@ -163,13 +169,10 @@ void s_dxgicontext::release_resources() {
 		buffer.Reset();
 	}
 	back_buffers.clear();
-
-	// Release RTV heap
-	rtv_heap.Reset();
 }
 
 void s_dxgicontext::create_resources() {
-	create_rtv_heap();
+
 	create_backbuffers();
 	create_srv_heap();
 }

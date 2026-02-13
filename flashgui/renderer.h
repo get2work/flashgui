@@ -68,6 +68,7 @@ namespace fgui {
 		void end_frame();
 		void post_present(const HRESULT& present_result);
 
+		void wait_for_gpu();
 		void release_resources();
 
 		void create_resources(bool create_heap_and_buffers = true);
