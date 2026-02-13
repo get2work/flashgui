@@ -84,6 +84,8 @@ namespace fgui {
 			}
 		}
 
+		printf("[flashgui] Created D3D12 device with feature level: 0x%X\n", feature_level);
+
 		if (FAILED(hr)) {
 			throw std::runtime_error("Failed to create D3D12 device, HRESULT: " + std::to_string(hr));
 		}

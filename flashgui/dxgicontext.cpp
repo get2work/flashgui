@@ -205,8 +205,6 @@ void s_dxgicontext::create_quad_buffers() {
 	upload_heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
 	D3D12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
-	//allow render target
-	vb_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	HRESULT hr = device->CreateCommittedResource(
 		&upload_heap,
