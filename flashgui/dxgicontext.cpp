@@ -6,25 +6,14 @@ using namespace fgui;
 
 //unhandled
 void s_dxgicontext::initialize_hooked() {
-
-	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
-	HRESULT hr = swapchain->GetDesc1(&swapchain_desc);
-	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to get swapchain description, HRESULT: " + std::to_string(hr));
-	}
-
 	hooked = true;
 
-	// get buffer count from swapchain description
-	buffer_count = swapchain_desc.BufferCount;
-
-	hr = swapchain->GetDevice(IID_PPV_ARGS(&device));
+	HRESULT hr = swapchain->GetDevice(IID_PPV_ARGS(&device));
 	if (FAILED(hr)) {
 		throw std::runtime_error("Failed to get device from swapchain, HRESULT: " + std::to_string(hr));
 	}
 
 	create_rtv_heap();
-
 	create_resources();
 	create_quad_buffers();
 }
@@ -78,8 +67,8 @@ void s_dxgicontext::create_device_and_swapchain() {
 
 	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
 	swapchain_desc.BufferCount = buffer_count; // Default buffer count
-	swapchain_desc.Width = process->window.get_width(); // Set the width of the swapchain
-	swapchain_desc.Height = process->window.get_height(); // Set the height of the swapchain
+	swapchain_desc.Width = process->window.width; // Set the width of the swapchain
+	swapchain_desc.Height = process->window.height; // Set the height of the swapchain
 	swapchain_desc.Format = dxgiformat; // Set the format of the swapchain
 	swapchain_desc.Stereo = FALSE; // No stereo rendering
 	swapchain_desc.SampleDesc.Count = sample_count; // No multisampling
@@ -199,17 +188,17 @@ void s_dxgicontext::create_quad_buffers() {
 	// --- Vertex Buffer ---
 	const UINT vb_size = sizeof(quad_vertices);
 
-	D3D12_HEAP_PROPERTIES upload_heap = {};
-	upload_heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-	upload_heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	upload_heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	D3D12_HEAP_PROPERTIES props = {};
+	props.Type = D3D12_HEAP_TYPE_UPLOAD;
+	props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
-	D3D12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
+	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
 
 	HRESULT hr = device->CreateCommittedResource(
-		&upload_heap,
+		&props,
 		D3D12_HEAP_FLAG_NONE,
-		&vb_desc,
+		&desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_quad_vertex_buffer)
@@ -231,11 +220,11 @@ void s_dxgicontext::create_quad_buffers() {
 	// --- Index Buffer ---
 	const UINT ib_size = sizeof(quad_indices);
 
-	D3D12_RESOURCE_DESC ib_desc = vb_desc;
+	D3D12_RESOURCE_DESC ib_desc = desc;
 	ib_desc.Width = ib_size;
 
 	hr = device->CreateCommittedResource(
-		&upload_heap,
+		&props,
 		D3D12_HEAP_FLAG_NONE,
 		&ib_desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,

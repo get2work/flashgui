@@ -17,6 +17,16 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 
 	try {
 		if (m_mode == render_mode::hooked) {
+			DXGI_SWAP_CHAIN_DESC desc;
+
+			HRESULT hr = swapchain->GetDesc(&desc);
+			if (FAILED(hr)) {
+				throw std::runtime_error("Failed to get swapchain description, HRESULT: " + std::to_string(hr));
+			}
+
+			m_dx.buffer_count = desc.BufferCount;
+			target_buffer_count = desc.BufferCount;
+
 			m_dx.swapchain = swapchain;
 			m_dx.cmd_queue = cmd_queue;
 			m_dx.swapchain_flags = flags;
@@ -192,7 +202,7 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 		m_dx.create_resources();
 
 	//store window size as long
-	long width = process->window.get_width(), height = process->window.get_height();
+	long width = process->window.width, height = process->window.height;
 
 	for (auto& frame : m_frame_resources)
 		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
@@ -246,25 +256,24 @@ void c_renderer::begin_frame() {
 	}
 	
     frame_resource& fr = m_frame_resources[m_frame_index];
-    if (process->needs_resize() && m_mode == fgui::render_mode::standalone) {
-        fr.signal(m_dx.cmd_queue);
-        fr.wait_for_gpu();
-        
-		release_resources();
 
-		//store window size as long
-		long width = process->window.get_width(), height = process->window.get_height();
+    if (process->needs_resize()) {
+		if (m_mode == fgui::render_mode::standalone) {
+			fr.signal(m_dx.cmd_queue);
+			fr.wait_for_gpu();
 
-		//exception wrapped resize_buffers 
-		try {
-			m_dx.resize_backbuffers(width, height);
+			release_resources();
+
+			//exception wrapped resize_buffers 
+			try {
+				m_dx.resize_backbuffers(process->window.width, process->window.height);
+			}
+			catch (const std::exception& e) {
+				std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
+			}
+
+			create_resources();
 		}
-		catch (const std::exception& e) {
-			std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
-		}
-
-		create_resources();
-
         return;
     }
 
@@ -287,9 +296,8 @@ void c_renderer::begin_frame() {
 
 	cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
 	cmd->SetGraphicsRootDescriptorTable(1, m_font_srv);
+
     cmd->RSSetViewports(1, &m_viewport);
-
-
     cmd->RSSetScissorRects(1, &m_scissor_rect);
 
     D3D12_RESOURCE_BARRIER to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -304,7 +312,6 @@ void c_renderer::begin_frame() {
 	const FLOAT clear_color[4] = { 0.f, 0.f, 0.f, 0.f };
 
     cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
-	D3D12_RECT clear_rect = { 0, 0, process->window.get_width(), process->window.get_height() };
 	//cmd->ClearRenderTargetView(rtv_handle, clear_color, 1, &clear_rect);
 
 }
@@ -314,6 +321,7 @@ void c_renderer::end_frame() {
 	if (process->needs_resize()) {
 		// Reset the resize flag
 		process->resize_complete();
+		im_instances.clear(); // Clear immediate instances on resize
 		return;
 	}
 

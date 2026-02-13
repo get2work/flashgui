@@ -69,8 +69,8 @@ namespace fgui {
 		ComPtr<ID3D12Device> device;
 
 		const D3D_FEATURE_LEVEL levels[] = {
-			D3D_FEATURE_LEVEL_12_1,
-			D3D_FEATURE_LEVEL_12_0,
+			D3D_FEATURE_LEVEL_12_1, //0xC100
+			D3D_FEATURE_LEVEL_12_0, //0x
 			D3D_FEATURE_LEVEL_11_1,
 			D3D_FEATURE_LEVEL_11_0
 		};
@@ -114,8 +114,8 @@ namespace fgui {
 			wc.lpszClassName,
 			"Overlay",
 			WS_POPUP,
-			process->window.get_posx(), process->window.get_posy(),
-			process->window.get_width(), process->window.get_height(),
+			10, 10,
+			process->window.width, process->window.height,
 			nullptr, nullptr, process->get_instance(), nullptr
 		);
 
@@ -130,8 +130,8 @@ namespace fgui {
 		// Setup swapchain description
 		DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
 
-		swapchain_desc.Width = process->window.get_width(); // Set the width of the swapchain
-		swapchain_desc.Height = process->window.get_height(); // Set the height of the swapchain
+		swapchain_desc.Width = process->window.width; // Set the width of the swapchain
+		swapchain_desc.Height = process->window.height; // Set the height of the swapchain
 		swapchain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Set the format of the swapchain
 		swapchain_desc.Stereo = FALSE; // No stereo rendering
 		swapchain_desc.SampleDesc.Count = 1; // No multisampling
@@ -191,7 +191,6 @@ namespace fgui {
 			current++;
 		}
 
-		// swapchain vtable, use index 8 for Present
 		void** vmt_table_ptr = *(void***)swapchain3.Get();
 
 		if (!vmt_table_ptr) {

@@ -22,26 +22,13 @@ namespace fgui {
 
 		struct window_info {
 			HWND handle = nullptr;
-			RECT rect = { 0, 0, 800, 600 }; // Default size
-
-			long get_width() const {
-				return rect.right - rect.left;
-			}
-
-			long get_height() const {
-				return rect.bottom - rect.top;
-			}
+			UINT width = 800;
+			UINT height = 600;
 
 			vec2i get_size() const {
-				return vec2i(static_cast<int>(get_width()), static_cast<int>(get_height()));
+				return vec2i(static_cast<int>(width), static_cast<int>(height));
 			}
 
-			long get_posx() const {
-				return rect.left;
-			}
-			long get_posy() const {
-				return rect.top;
-			}
 		} window;
 
 		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);

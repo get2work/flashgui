@@ -66,10 +66,10 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 
 		window.handle = CreateWindowExA(
 			0, // No extended styles
-			wc.lpszClassName, // Class name
+			wc.lpszClassName, // Class name	
 			"FlashGUI Window", // Window title
 			WS_OVERLAPPEDWINDOW, // Window style
-			CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, // Default position and size
+			CW_USEDEFAULT, CW_USEDEFAULT, window.width, window.height, // Default position and size
 			nullptr, // No parent window
 			nullptr, // No menu
 			wc.hInstance, // Use provided instance handle or current module handle
@@ -79,8 +79,6 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 		if (!window.handle) {
 			throw std::runtime_error("Failed to create window");
 		}
-
-		GetClientRect(window.handle, &window.rect); // Get the client rectangle of the created window
 
 		LONG ex_style = GetWindowLong(window.handle, GWL_EXSTYLE);
 		SetWindowLong(window.handle, GWL_EXSTYLE, ex_style | WS_EX_LAYERED);
@@ -96,7 +94,10 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 			printf("Failed to find window for PID %d\n", pid);
 
 		if (window.handle && in_rect.left == 0 && in_rect.top == 0 && in_rect.right == 0 && in_rect.bottom == 0) {
-			GetWindowRect(window.handle, &window.rect);
+			RECT client_rect;
+			GetClientRect(window.handle, &client_rect);
+			window.width = client_rect.right - client_rect.left;
+			window.height = client_rect.bottom - client_rect.top;
 		}
 	}
 }
@@ -113,11 +114,12 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 
 		int new_width = LOWORD(lparam);
 		int new_height = HIWORD(lparam);
+
 		if (new_width == 0 || new_height == 0) return 0;
 
-		if (new_width != window.get_width() || new_height != window.get_height()) {
-			window.rect.right = window.rect.left + new_width;
-			window.rect.bottom = window.rect.top + new_height;
+		if (new_width != window.width || new_height != window.height) {
+			window.width = new_width;
+			window.height = new_height;
 			m_needs_resize = true;
 		}
 		return 0;

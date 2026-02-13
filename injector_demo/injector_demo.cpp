@@ -39,7 +39,7 @@ static DWORD GetProcessByName(const char* lpProcessName)
 
 static int inject() {
     const char* lpDLLName = "dll_demo.dll";
-    const char* lpProcessName = "NFL1-Win64-Shipping.exe";
+    const char* lpProcessName = "exe_demo.exe";
     char lpFullDLLPath[MAX_PATH];
 
     const DWORD dwProcessID = GetProcessByName(lpProcessName);
