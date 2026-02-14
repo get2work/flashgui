@@ -48,7 +48,7 @@ static HWND find_process_window(DWORD pid, const char* class_name = nullptr) {
 	return params.found_hwnd;
 }
 
-c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
+c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWND in_hwnd) {
 	if (create_window) {
 		WNDCLASSEXA wc = {};
 		wc.cbSize = sizeof(WNDCLASSEXA);
@@ -75,14 +75,16 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 			wc.hInstance, // Use provided instance handle or current module handle
 			this // Pass this instance as user data
 		);
-
+			
 		if (!window.handle) {
 			throw std::runtime_error("Failed to create window");
 		}
 
-		LONG ex_style = GetWindowLong(window.handle, GWL_EXSTYLE);
-		SetWindowLong(window.handle, GWL_EXSTYLE, ex_style | WS_EX_LAYERED);
-		SetLayeredWindowAttributes(window.handle, 0, 255, LWA_ALPHA); // Optional: use LWA_COLORKEY for full transparency
+        // Do not force layered style on the main D3D window. Layered windows
+        // can interact poorly with DXGI flip-model swapchains on Windows 10
+        // and cause visual artifacts (black bars) after resize. Leave the
+        // window as a normal top-level window so the swapchain covers the
+        // client area correctly.
 
 		ShowWindow(window.handle, SW_SHOW); // Show the window
 		UpdateWindow(window.handle); // Update the window to ensure it is drawn
@@ -92,13 +94,13 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 
 		if (!window.handle)
 			printf("Failed to find window for PID %d\n", pid);
+	}
 
-		if (window.handle && in_rect.left == 0 && in_rect.top == 0 && in_rect.right == 0 && in_rect.bottom == 0) {
-			RECT client_rect;
-			GetClientRect(window.handle, &client_rect);
-			window.width = client_rect.right - client_rect.left;
-			window.height = client_rect.bottom - client_rect.top;
-		}
+	if (window.handle) {
+		RECT client_rect;
+		GetClientRect(window.handle, &client_rect);
+		window.width = client_rect.right - client_rect.left;
+		window.height = client_rect.bottom - client_rect.top;
 	}
 }
 

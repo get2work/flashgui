@@ -25,7 +25,6 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 			}
 
 			m_dx.buffer_count = desc.BufferCount;
-			target_buffer_count = desc.BufferCount;
 
 			m_dx.swapchain = swapchain;
 			m_dx.cmd_queue = cmd_queue;
@@ -39,7 +38,7 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 			m_dx.initialize_hooked();
 		}
 		else {
-			m_dx.initialize_standalone(target_buffer_count);
+			m_dx.initialize_standalone(m_dx.buffer_count);
 		}
 
 		m_frame_resources.resize(m_dx.buffer_count);

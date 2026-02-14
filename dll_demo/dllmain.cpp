@@ -44,11 +44,9 @@ static unsigned __stdcall entry_function(void* param) {
 
     init_console();
     std::cout << "[flashgui] Analyzing process " << pid << std::endl;
-
-    fgui::hook_data hookinfo{};
-
+    
     try {
-       hookinfo = fgui::hk::get_info(pid, module_handle);
+		fgui::initialize(pid, module_handle);
     }
     catch (const std::runtime_error& e) {
 		//catch any runtime errors and print them to the console
@@ -62,13 +60,13 @@ static unsigned __stdcall entry_function(void* param) {
     }
 
 	std::cout << "[flashgui] Process " << pid << " analyzed successfully." << std::endl;
-	std::cout << "[flashgui] Command queue offset: " << hookinfo.command_queue_offset << std::endl;
-	std::cout << "[flashgui] Present function address: " << hookinfo.p_present << std::endl;
-	std::cout << "[flashgui] ResizeBuffers function address: " << hookinfo.p_resizebuffers << std::endl;
+	std::cout << "[flashgui] Command queue offset: " <<    fgui::hk::hookinfo.command_queue_offset << std::endl;
+	std::cout << "[flashgui] Present function address: " << fgui::hk::hookinfo.p_present << std::endl;
+	std::cout << "[flashgui] ResizeBuffers function address: " << fgui::hk::hookinfo.p_resizebuffers << std::endl;
 
 	MH_Initialize();
-	MH_CreateHook(hookinfo.p_present, &hooks::present, reinterpret_cast<LPVOID*>(&fgui::hk::o_present));
-	MH_CreateHook(hookinfo.p_resizebuffers, &hooks::resize_buffers, reinterpret_cast<LPVOID*>(&fgui::hk::o_resize_buffers));
+	MH_CreateHook(fgui::hk::hookinfo.p_present, &hooks::present, reinterpret_cast<LPVOID*>(&fgui::hk::o_present));
+	MH_CreateHook(fgui::hk::hookinfo.p_resizebuffers, &hooks::resize_buffers, reinterpret_cast<LPVOID*>(&fgui::hk::o_resize_buffers));
 	MH_EnableHook(MH_ALL_HOOKS);
 
     while (true) {

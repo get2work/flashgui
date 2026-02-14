@@ -33,7 +33,7 @@ static void init_console() {
 int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	init_console();
-	fgui::initialize();
+	fgui::initialize(4);
 
 	MSG msg{}; bool running = true;
 

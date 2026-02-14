@@ -7,32 +7,42 @@ namespace fgui {
 
 	//global definitions
 	std::unique_ptr<c_renderer> render = nullptr;
-	uint32_t target_buffer_count = 4;
 	std::unique_ptr<c_process> process;
 	hook_data hk::hookinfo = {};
 
 	hk::fn_present hk::o_present = nullptr;
 	hk::fn_resize_buffers hk::o_resize_buffers = nullptr;
 
-	//
-	bool initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
+	bool initialize(UINT buffer_count, IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
 		if (!render) {
 			// Standalone mode, create our renderer instance
 			process = std::make_unique<c_process>();
 
-			render = std::make_unique<c_renderer>(D3D_FEATURE_LEVEL_12_1, target_buffer_count);
+			render = std::make_unique<c_renderer>(D3D_FEATURE_LEVEL_12_1, buffer_count);
 
 			if (!render) {
 				std::cerr << "[flashgui] Failed to create renderer instance" << std::endl;
 				return false; // Initialization failed
 			}
+
+			render->initialize(swapchain, cmd_queue);
+
+			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
+
+			return true; // Initialization successful
 		}
+	}
 
-		render->initialize(swapchain, cmd_queue);
-
-		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
-
-		return true; // Initialization successful
+	bool initialize(DWORD processID, HINSTANCE dll_module, HWND in_hwnd) {
+		try {
+			hk::hookinfo = hk::get_info(processID, dll_module, in_hwnd);
+			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
+			return true; // Initialization successful
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "[flashgui] Initialization failed: " << ex.what() << std::endl;
+			return false; // Initialization failed
+		}
 	}
 
 	// VMT indices for IDXGISwapChain3
@@ -41,8 +51,8 @@ namespace fgui {
 		resize_buffers = 13
 	};
 
-	hook_data hk::get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd, RECT in_rect) {
-		process = std::make_unique<c_process>(false, pid, module_handle, in_hwnd, in_rect);
+	hook_data hk::get_info(DWORD pid, HINSTANCE module_handle, HWND in_hwnd) {
+		process = std::make_unique<c_process>(false, pid, module_handle, in_hwnd);
 		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(process.get()));
 
 		ComPtr<IDXGIFactory7> dxgi_factory;
@@ -207,7 +217,7 @@ namespace fgui {
 		}
 
 		if (!render) {
-			render = std::make_unique<c_renderer>(feature_level, target_buffer_count);
+			render = std::make_unique<c_renderer>(feature_level, 1);
 		}
 		
 		return hookinfo; // Return the hook data containing the command queue offset and function pointers

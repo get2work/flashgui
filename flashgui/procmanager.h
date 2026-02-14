@@ -13,7 +13,7 @@ namespace fgui {
 		c_process(bool create_window = true,
 			DWORD pid = GetCurrentProcessId(),
 			HINSTANCE module_handle = GetModuleHandleA(nullptr),
-			HWND in_hwnd = nullptr, RECT in_rect = RECT{});
+			HWND in_hwnd = nullptr);
 
 		bool needs_resize() const { return m_needs_resize; }
 		void resize_complete() { m_needs_resize = false; }
