@@ -48,13 +48,6 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 			m_dx.initialize_standalone(m_dx.buffer_count);
 		}
 
-		HRESULT reason = m_dx.device->GetDeviceRemovedReason();
-		if (reason != S_OK) {
-			std::string msg = "[flashgui] Device removed dx->initialize, reason: " + std::to_string(reason) + "\n";
-			OutputDebugStringA(msg.c_str());
-			std::cerr << msg;
-		}
-
 		m_frame_resources.resize(m_dx.buffer_count);
 		m_dx.create_pipeline();
 
