@@ -8,23 +8,23 @@
     <Filter Include="src">
       <UniqueIdentifier>{3ada03c2-80d4-477f-96ac-227323fdbff8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\helpers">
-      <UniqueIdentifier>{323c1c4f-4929-4600-b705-941327132d74}</UniqueIdentifier>
-    </Filter>
     <Filter Include="pch">
       <UniqueIdentifier>{0e95056a-7d22-4d16-a39c-d3bb2671ed08}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\font">
-      <UniqueIdentifier>{6d160300-9484-4faa-8d08-95ed7436165a}</UniqueIdentifier>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{323c1c4f-4929-4600-b705-941327132d74}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\types">
-      <UniqueIdentifier>{0416d8ff-d225-4057-a8d4-393a0f15e512}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\shaders">
+    <Filter Include="shaders">
       <UniqueIdentifier>{fe8e7e8e-a0ba-4f31-aa94-b33eaa191a22}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\gui">
+    <Filter Include="gui">
       <UniqueIdentifier>{d9f1222b-4fd9-4173-9244-aea82d660cea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="types">
+      <UniqueIdentifier>{0416d8ff-d225-4057-a8d4-393a0f15e512}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="font">
+      <UniqueIdentifier>{6d160300-9484-4faa-8d08-95ed7436165a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -44,27 +44,27 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="root_sig_builder.hpp">
-      <Filter>src\helpers</Filter>
+      <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="pso_builder.hpp">
-      <Filter>src\helpers</Filter>
+      <Filter>helpers</Filter>
     </ClInclude>
     <ClInclude Include="frame_resource.hpp">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="gui.h">
-      <Filter>src\gui</Filter>
+      <Filter>gui</Filter>
     </ClInclude>
     <ClInclude Include="fonts.h">
-      <Filter>src\font</Filter>
+      <Filter>font</Filter>
     </ClInclude>
     <ClInclude Include="vec2.h">
-      <Filter>src\types</Filter>
-    </ClInclude>
-    <ClInclude Include="shader_loader.hpp">
-      <Filter>src\shaders</Filter>
+      <Filter>types</Filter>
     </ClInclude>
     <ClInclude Include="include\flashgui.h" />
+    <ClInclude Include="shader_loader.hpp">
+      <Filter>helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -83,7 +83,7 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="gui.cpp">
-      <Filter>src\gui</Filter>
+      <Filter>gui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -94,15 +94,15 @@
       <Filter>vcpkg</Filter>
     </None>
     <None Include="cpp.hint">
-      <Filter>src\helpers</Filter>
+      <Filter>helpers</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\pixel.hlsl">
-      <Filter>src\shaders</Filter>
+      <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\vertex.hlsl">
-      <Filter>src\shaders</Filter>
+      <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

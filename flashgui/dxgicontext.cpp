@@ -4,7 +4,6 @@
 
 using namespace fgui;
 
-//unhandled
 void s_dxgicontext::initialize_hooked() {
 	hooked = true;
 
@@ -190,35 +189,6 @@ void s_dxgicontext::create_pipeline() {
 
 	shaders->initialize(device);
 
-	HRESULT reason = device->GetDeviceRemovedReason();
-	if (reason != S_OK) {
-		std::string msg = "[flashgui] Device removed shaders->initialize, reason: " + std::to_string(reason) + "\n";
-		OutputDebugStringA(msg.c_str());
-		std::cerr << msg;
-	}
-
-	// Feature diagnostics: ResourceHeapTier
-	D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
-	HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
-	if (FAILED(hr)) {
-		std::string msg = "CheckFeatureSupport(D3D12_OPTIONS) failed, HRESULT: " + std::to_string(hr) + "\n";
-		OutputDebugStringA(msg.c_str());
-		std::cerr << msg;
-	} else {
-		std::ostringstream oss;
-		oss << "[flashgui] D3D12_OPTIONS.ResourceHeapTier = " << static_cast<int>(options.ResourceHeapTier) << "\n";
-		OutputDebugStringA(oss.str().c_str());
-		std::cerr << oss.str();
-	}
-
-	reason = device->GetDeviceRemovedReason();
-	if (reason != S_OK) {
-		std::string msg = "[flashgui] Device removed CheckFeatureSupport, reason: " + std::to_string(reason) + "\n";
-		OutputDebugStringA(msg.c_str());
-		std::cerr << msg;
-	}
-
-
 	// Build ImGui-exact root signature
 	D3D12_DESCRIPTOR_RANGE1 srv_range{};
 	srv_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -252,7 +222,6 @@ void s_dxgicontext::create_pipeline() {
 		std::cerr << msg;
 		throw;
 	}
-
 
 	if (!root_sig)
 		throw std::runtime_error("Failed to create root signature (unknown reason)");
@@ -298,11 +267,5 @@ void s_dxgicontext::create_pipeline() {
 		OutputDebugStringA(msg.c_str());
 		std::cerr << msg;
 		throw;
-	}
-
-	if (!pso_triangle) {
-		std::string msg = "Failed to create PSO for triangles (unknown reason)\n";
-		OutputDebugStringA(msg.c_str());
-		throw std::runtime_error(msg);
 	}
 }
