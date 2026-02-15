@@ -174,7 +174,6 @@
     <ClInclude Include="renderer.h" />
     <ClInclude Include="root_sig_builder.hpp" />
     <ClInclude Include="shader_loader.hpp" />
-    <ClInclude Include="srv_allocator.hpp" />
     <ClInclude Include="vec2.h" />
   </ItemGroup>
   <ItemGroup>

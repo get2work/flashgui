@@ -9,9 +9,6 @@ HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interv
 
 	if (first_present) {
 		first_present = false;
-		//get buffer count from present data
-		DXGI_SWAP_CHAIN_DESC desc;
-		p_swapchain->GetDesc(&desc);
 		fgui::render->initialize(p_swapchain, d3d12_command_queue, sync_interval, flags);
 	}
 
@@ -30,7 +27,7 @@ HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interv
 
 HRESULT __fastcall hooks::resize_buffers(IDXGISwapChain3* p_this, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT new_format, UINT swapchain_flags) {
 	
-	fgui::render->wait_for_gpu();
+	//fgui::render->wait_for_gpu();
 	
 	fgui::render->release_resources();
 

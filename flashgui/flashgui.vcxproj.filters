@@ -43,9 +43,6 @@
     <ClInclude Include="dxgicontext.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="srv_allocator.hpp">
-      <Filter>src\helpers</Filter>
-    </ClInclude>
     <ClInclude Include="root_sig_builder.hpp">
       <Filter>src\helpers</Filter>
     </ClInclude>

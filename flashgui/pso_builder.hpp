@@ -7,8 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-
-//#include "shader_loader.hpp"
+#include <directx/d3dx12.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -52,7 +51,6 @@ namespace fgui {
 			return *this;
 		}
 		c_pso_builder& set_input_layout(const std::vector<D3D12_INPUT_ELEMENT_DESC>& input_elements) {
-
 			m_input_elements = input_elements;
 			m_input_layout.pInputElementDescs = m_input_elements.data();
 			m_input_layout.NumElements = static_cast<UINT>(m_input_elements.size());
@@ -141,7 +139,6 @@ namespace fgui {
 		}
 
 		c_pso_builder& set_debug_name(const std::string& name) {
-			// Optional: Set a debug name for the pipeline state object
 			m_debug_name = name; return *this;
 		}
 
@@ -185,13 +182,47 @@ namespace fgui {
 				throw std::runtime_error("Root signature must be set");
 			}
 
-			//validate required fields
+			// Feature query: ResourceHeapTier for diagnostics
+			D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
+			HRESULT hrOpt = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+			if (SUCCEEDED(hrOpt)) {
+				std::ostringstream oss;
+				oss << "[flashgui] D3D12_OPTIONS.ResourceHeapTier = " << static_cast<int>(options.ResourceHeapTier) << "\n";
+				OutputDebugStringA(oss.str().c_str());
+				std::cerr << oss.str();
+			} else {
+				std::string msg = "CheckFeatureSupport(D3D12_OPTIONS) failed, HRESULT: " + std::to_string(hrOpt) + "\n";
+				OutputDebugStringA(msg.c_str());
+				std::cerr << msg;
+			}
+
+			// Validate required fields
 			if (m_num_render_targets == 0) {
 				throw std::runtime_error("At least one render target must be set");
 			}
 
-			if (!m_allow_empty_input_layout && (m_input_layout.pInputElementDescs == nullptr || m_input_layout.NumElements == 0)) {
-				throw std::runtime_error("Input layout must be set and cannot be empty");
+			// RTV format validation
+			for (UINT i = 0; i < m_num_render_targets; ++i) {
+				if (m_rtv_formats[i] == DXGI_FORMAT_UNKNOWN) {
+					throw std::runtime_error("Render target format must be set for all render targets");
+				}
+			}
+
+			// Input layout handling: if empty but allowed, zero it out for PSO desc
+			D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+			if (!m_allow_empty_input_layout) {
+				if (m_input_layout.pInputElementDescs == nullptr || m_input_layout.NumElements == 0) {
+					throw std::runtime_error("Input layout must be set and cannot be empty");
+				}
+				inputLayoutDesc = m_input_layout;
+			} else {
+				// If allowed and no elements provided, keep empty input layout
+				if (m_input_layout.NumElements > 0 && m_input_layout.pInputElementDescs != nullptr) {
+					inputLayoutDesc = m_input_layout;
+				} else {
+					inputLayoutDesc.NumElements = 0;
+					inputLayoutDesc.pInputElementDescs = nullptr;
+				}
 			}
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
@@ -201,18 +232,13 @@ namespace fgui {
 			pso_desc.BlendState = m_blend_desc;
 			pso_desc.RasterizerState = m_rasterizer_desc;
 			pso_desc.DepthStencilState = m_depth_stencil_desc;
-			pso_desc.InputLayout = m_input_layout;
+			pso_desc.InputLayout = inputLayoutDesc;
 			pso_desc.PrimitiveTopologyType = m_primitive_topology;
 			pso_desc.SampleDesc = m_sample_desc;
 			pso_desc.SampleMask = m_sample_mask;
 			pso_desc.NumRenderTargets = m_num_render_targets;
 
 			for (UINT i = 0; i < m_num_render_targets; ++i) {
-
-				if (m_rtv_formats[i] == DXGI_FORMAT_UNKNOWN) {
-					throw std::runtime_error("Render target format must be set for all render targets");
-				}
-
 				pso_desc.RTVFormats[i] = m_rtv_formats[i];
 			}
 			pso_desc.DSVFormat = m_dsv_format;
@@ -220,7 +246,11 @@ namespace fgui {
 			pso_desc.Flags = m_flags;
 
 			ComPtr<ID3D12PipelineState> pipeline_state;
-			if (FAILED(m_device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline_state)))) {
+			HRESULT hr = m_device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline_state));
+			if (FAILED(hr)) {
+				std::string msg = "CreateGraphicsPipelineState failed, HRESULT: " + std::to_string(hr) + "\n";
+				OutputDebugStringA(msg.c_str());
+				std::cerr << msg;
 				throw std::runtime_error("Failed to create graphics pipeline state");
 			}
 

@@ -17,16 +17,20 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 
 	try {
 		if (m_mode == render_mode::hooked) {
+			std::string msg = "[flashgui] Initializing in hooked mode, swapchain: " + std::to_string(reinterpret_cast<uintptr_t>(swapchain)) + ", cmd_queue: " + std::to_string(reinterpret_cast<uintptr_t>(cmd_queue)) + "\n";
+			OutputDebugStringA(msg.c_str());
+			std::cout << msg;
+
+			m_dx.swapchain.Attach(swapchain);
+
 			DXGI_SWAP_CHAIN_DESC desc;
 
-			HRESULT hr = swapchain->GetDesc(&desc);
+			HRESULT hr = m_dx.swapchain->GetDesc(&desc);
 			if (FAILED(hr)) {
 				throw std::runtime_error("Failed to get swapchain description, HRESULT: " + std::to_string(hr));
 			}
 
 			m_dx.buffer_count = desc.BufferCount;
-
-			m_dx.swapchain = swapchain;
 			m_dx.cmd_queue = cmd_queue;
 			m_dx.swapchain_flags = flags;
 			m_dx.sync_interval = sync_interval;
@@ -38,11 +42,20 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 			m_dx.initialize_hooked();
 		}
 		else {
+			std::string msg = "[flashgui] Initializing in standalone mode\n";
+			OutputDebugStringA(msg.c_str());
+			std::cout << msg;
 			m_dx.initialize_standalone(m_dx.buffer_count);
 		}
 
-		m_frame_resources.resize(m_dx.buffer_count);
+		HRESULT reason = m_dx.device->GetDeviceRemovedReason();
+		if (reason != S_OK) {
+			std::string msg = "[flashgui] Device removed dx->initialize, reason: " + std::to_string(reason) + "\n";
+			OutputDebugStringA(msg.c_str());
+			std::cerr << msg;
+		}
 
+		m_frame_resources.resize(m_dx.buffer_count);
 		m_dx.create_pipeline();
 
 		create_resources(false);
@@ -59,6 +72,9 @@ void c_renderer::initialize_fonts()
 {
 	using namespace fonts;
 
+	//
+	// 1. Build CPU-side RGBA atlas
+	//
 	const int glyph_w = font8x8_glyph_width;
 	const int glyph_h = font8x8_glyph_height;
 	const int cols = 32;
@@ -66,10 +82,10 @@ void c_renderer::initialize_fonts()
 	const int atlas_w = cols * glyph_w;
 	const int atlas_h = rows * glyph_h;
 
-	// 4 bytes per texel (RGBA)
 	std::vector<uint8_t> atlas(atlas_w * atlas_h * 4, 0);
 
-	for (int i = 0; i < font8x8_glyph_count; ++i) {
+	for (int i = 0; i < font8x8_glyph_count; ++i)
+	{
 		const auto& g = font8x8_glyphs[i];
 
 		int gx = i % cols;
@@ -77,16 +93,18 @@ void c_renderer::initialize_fonts()
 		int dst_x = gx * glyph_w;
 		int dst_y = gy * glyph_h;
 
-		for (int y = 0; y < glyph_h; ++y) {
-			for (int x = 0; x < glyph_w; ++x) {
+		for (int y = 0; y < glyph_h; ++y)
+		{
+			for (int x = 0; x < glyph_w; ++x)
+			{
 				uint32_t v = g.bitmap[y * glyph_w + x];
-				uint8_t  alpha = v ? 255u : 0u;
+				uint8_t alpha = v ? 255 : 0;
 
-				int dst_index = ((dst_y + y) * atlas_w + (dst_x + x)) * 4;
-				atlas[size_t(dst_index + 0)] = 255;   // R
-				atlas[size_t(dst_index + 1)] = 255;   // G
-				atlas[size_t(dst_index + 2)] = 255;   // B
-				atlas[size_t(dst_index + 3)] = alpha; // A
+				size_t idx = ((dst_y + y) * atlas_w + (dst_x + x)) * 4;
+				atlas[idx + 0] = 255;
+				atlas[idx + 1] = 255;
+				atlas[idx + 2] = 255;
+				atlas[idx + 3] = alpha;
 			}
 		}
 
@@ -100,91 +118,114 @@ void c_renderer::initialize_fonts()
 		m_font_glyphs[g.char_code] = info;
 	}
 
-	// Texture: R8G8B8A8
-	D3D12_RESOURCE_DESC desc{};
-	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	desc.Width = atlas_w;
-	desc.Height = atlas_h;
-	desc.DepthOrArraySize = 1;
-	desc.MipLevels = 1;
-	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	desc.SampleDesc.Count = 1;
-	desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	//
+	// 2. Create GPU texture (DEFAULT heap)
+	//
+	D3D12_RESOURCE_DESC texDesc{};
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Width = atlas_w;
+	texDesc.Height = atlas_h;
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
 	CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
+
 	if (FAILED(m_dx.device->CreateCommittedResource(
 		&defaultHeap,
 		D3D12_HEAP_FLAG_NONE,
-		&desc,
+		&texDesc,
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
-		IID_PPV_ARGS(&m_font_texture)))) {
+		IID_PPV_ARGS(&m_font_texture))))
+	{
 		throw std::runtime_error("Failed to create font texture");
 	}
 
-	// Upload buffer
+	//
+	// 3. Create upload buffer
+	//
 	UINT64 uploadSize = GetRequiredIntermediateSize(m_font_texture.Get(), 0, 1);
+
 	ComPtr<ID3D12Resource> upload;
 	CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
 	auto uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadSize);
+
 	if (FAILED(m_dx.device->CreateCommittedResource(
 		&uploadHeap,
 		D3D12_HEAP_FLAG_NONE,
 		&uploadDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(&upload)))) {
+		IID_PPV_ARGS(&upload))))
+	{
 		throw std::runtime_error("Failed to create font upload buffer");
 	}
 
-	// Subresource data (note RowPitch/SlicePitch in bytes)
+	//
+	// 4. Upload atlas -> GPU texture
+	//
 	D3D12_SUBRESOURCE_DATA sub{};
 	sub.pData = atlas.data();
-	sub.RowPitch = static_cast<LONG_PTR>(atlas_w) * 4;
-	sub.SlicePitch = static_cast<LONG_PTR>(atlas_w * atlas_h) * 4;
+	sub.RowPitch = atlas_w * 4;
+	sub.SlicePitch = atlas_w * atlas_h * 4;
 
 	auto& fr = m_frame_resources[m_frame_index];
 	auto& cmd = fr.command_list;
 
-	// Reset upload command list
 	cmd->Reset(fr.command_allocator.Get(), nullptr);
 
-	// Upload subresource
 	UpdateSubresources(cmd.Get(), m_font_texture.Get(), upload.Get(), 0, 0, 1, &sub);
 
-	// Transition to PS-readable
 	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 		m_font_texture.Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 	cmd->ResourceBarrier(1, &barrier);
 
-	// Execute and wait
 	cmd->Close();
 	ID3D12CommandList* lists[] = { cmd.Get() };
 	m_dx.cmd_queue->ExecuteCommandLists(1, lists);
+
 	fr.signal(m_dx.cmd_queue);
 	fr.wait_for_gpu();
 
-	// leave cmd closed begin_frame() will reset with PSO later
+	//
+	// 5. Create ImGui-style dedicated SRV heap (1 descriptor)
+	//
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	// SRV
-	D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
-	srv.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srv.Texture2D.MipLevels = 1;
-
-	m_font_srv = m_dx.srv->allocate(m_font_texture, srv, false, 0);
-
-	if (m_font_srv.ptr) {
-		std::cout << "[flashgui] Font atlas created successfully. Glyph count: "
-			<< m_font_glyphs.size() << std::endl;
+	if (FAILED(m_dx.device->CreateDescriptorHeap(
+		&heapDesc,
+		IID_PPV_ARGS(&m_font_srv_heap))))
+	{
+		throw std::runtime_error("Failed to create font SRV heap");
 	}
-	else {
-		throw std::runtime_error("Failed to allocate font SRV");
-	}
+
+	//
+	// 6. Create SRV directly into that heap (ImGui style)
+	//
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	auto cpuHandle = m_font_srv_heap->GetCPUDescriptorHandleForHeapStart();
+	m_dx.device->CreateShaderResourceView(m_font_texture.Get(), &srvDesc, cpuHandle);
+
+	// Save GPU handle for binding
+	m_font_srv_gpu = m_font_srv_heap->GetGPUDescriptorHandleForHeapStart();
+
+	std::cout << "[flashgui] Font atlas created successfully. Glyph count: "
+		<< m_font_glyphs.size() << std::endl;
 }
 
 void c_renderer::release_resources() {
@@ -192,20 +233,25 @@ void c_renderer::release_resources() {
 		fr.release();
 	}
 
-	m_dx.release_resources();
+	m_dx.release_backbuffers();
 }
 
 void c_renderer::create_resources(bool create_heap_and_buffers) {
 
 	if (create_heap_and_buffers)
-		m_dx.create_resources();
+		m_dx.create_backbuffers();
 
 	//store window size as long
-	long width = process->window.width, height = process->window.height;
+	GetClientRect(process->window.handle, &m_scissor_rect);
+
+	long width = m_scissor_rect.right - m_scissor_rect.left;
+	long height = m_scissor_rect.bottom - m_scissor_rect.top;
 
 	for (auto& frame : m_frame_resources)
 		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
 
+	// CRITICAL: Update projection matrix and viewport/scissor for the new window size
+	// even on the first frame after resize
 	const float fwidth = static_cast<float>(width);
 	const float fheight = static_cast<float>(height);
 
@@ -273,10 +319,10 @@ void c_renderer::begin_frame() {
 
 			create_resources();
 		}
-        return;
+		return;
     }
 
-	m_dx.srv->begin_frame(m_frame_index);
+	//m_dx.srv->begin_frame(m_frame_index);
 
 	if (m_mode == render_mode::standalone)
 		fr.wait_for_gpu();
@@ -286,15 +332,42 @@ void c_renderer::begin_frame() {
 
     auto& cmd = fr.command_list;
 
-	ID3D12DescriptorHeap* heaps[] = { m_dx.srv->m_heap.Get() };
-
+	// Bind SRV descriptor heap (font + backbuffer SRVs, etc.)
+	ID3D12DescriptorHeap* heaps[] = { m_font_srv_heap.Get() };
 	cmd->SetDescriptorHeaps(1, heaps);
+
+	// Set root signature
     cmd->SetGraphicsRootSignature(m_dx.root_sig.Get());
 
-    fr.cb_gpu_va = fr.push_cb(&m_transform_cb, sizeof(m_transform_cb));
+	// Set the projection matrix as 16x32-bit constants (ImGui-exact root signature expects this).
+	// Build the projection exactly like ImGui: an orthographic projection mapped to clip space.
+	// Left = 0, Right = width, Top = 0, Bottom = height
+	const float L = 0.0f;
+	const float R = static_cast<float>(m_viewport.Width);
+	const float T = 0.0f;
+	const float B = static_cast<float>(m_viewport.Height);
 
-	cmd->SetGraphicsRootConstantBufferView(0, fr.cb_gpu_va);
-	cmd->SetGraphicsRootDescriptorTable(1, m_font_srv);
+	// ImGui's projection matrix layout (row-major float[4][4]):
+	// { { 2/(R-L),      0,        0, 0 },
+	//   {      0,  2/(T-B),      0, 0 },
+	//   {      0,      0,   0.5f, 0 },
+	//   { (R+L)/(L-R), (T+B)/(B-T), 0.5f, 1 } };
+	// We'll fill a float[16] in the same order and pass it directly.
+	float proj[16];
+	ZeroMemory(proj, sizeof(proj));
+	proj[0]  = 2.0f / (R - L);
+	proj[5]  = 2.0f / (T - B);
+	proj[10] = 0.5f;
+	proj[12] = (R + L) / (L - R);
+	proj[13] = (T + B) / (B - T);
+	proj[14] = 0.5f;
+	proj[15] = 1.0f;
+
+	// Set 16 x 32-bit root constants at slot 0 (matches the ImGui DX12 root signature)
+	cmd->SetGraphicsRoot32BitConstants(0, 16, proj, 0);
+
+	// Bind font SRV descriptor table at root parameter 1
+	cmd->SetGraphicsRootDescriptorTable(1, m_font_srv_gpu);
 
     cmd->RSSetViewports(1, &m_viewport);
     cmd->RSSetScissorRects(1, &m_scissor_rect);
@@ -331,6 +404,21 @@ void c_renderer::end_frame() {
 	const size_t persistent_count = instances.size();
 	const size_t immediate_count = im_instances.size();
 
+	// *** DYNAMIC QUAD + INSTANCE ***
+	 // 1. Upload quad verts (32B)
+	D3D12_GPU_VIRTUAL_ADDRESS quad_verts_va = fr.push_bytes(quad_vertices, sizeof(quad_vertices), 16);
+	D3D12_VERTEX_BUFFER_VIEW vbv_quad = {};
+	vbv_quad.BufferLocation = quad_verts_va;
+	vbv_quad.SizeInBytes = sizeof(quad_vertices);
+	vbv_quad.StrideInBytes = 8;  // float2
+
+	// 2. Upload indices (12B) 
+	D3D12_GPU_VIRTUAL_ADDRESS quad_inds_va = fr.push_bytes(quad_indices, sizeof(quad_indices), 4);
+	D3D12_INDEX_BUFFER_VIEW quad_ibv = {};
+	quad_ibv.BufferLocation = quad_inds_va;
+	quad_ibv.SizeInBytes = sizeof(quad_indices);
+	quad_ibv.Format = DXGI_FORMAT_R16_UINT;
+
 	if (persistent_count >0) {
 		D3D12_GPU_VIRTUAL_ADDRESS inst_va = fr.push_bytes(
 			instances.data(),
@@ -343,9 +431,9 @@ void c_renderer::end_frame() {
 		vbv_inst.SizeInBytes = static_cast<UINT>(persistent_count * sizeof(shape_instance));
 		vbv_inst.StrideInBytes = sizeof(shape_instance);
 
-		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { m_dx.m_quad_vbv, vbv_inst };
+		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { vbv_quad, vbv_inst };
 		cmd->IASetVertexBuffers(0,2, vbvs);
-		cmd->IASetIndexBuffer(&m_dx.m_quad_ibv);
+		cmd->IASetIndexBuffer(&quad_ibv);
 		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		cmd->DrawIndexedInstanced(
@@ -368,9 +456,9 @@ void c_renderer::end_frame() {
 		vbv_inst2.SizeInBytes = static_cast<UINT>(immediate_count * sizeof(shape_instance));
 		vbv_inst2.StrideInBytes = sizeof(shape_instance);
 
-		D3D12_VERTEX_BUFFER_VIEW vbvs2[2] = { m_dx.m_quad_vbv, vbv_inst2 };
+		D3D12_VERTEX_BUFFER_VIEW vbvs2[2] = { vbv_quad, vbv_inst2 };
 		cmd->IASetVertexBuffers(0,2, vbvs2);
-		cmd->IASetIndexBuffer(&m_dx.m_quad_ibv);
+		cmd->IASetIndexBuffer(&quad_ibv);
 		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		cmd->DrawIndexedInstanced(

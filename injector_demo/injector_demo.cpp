@@ -115,6 +115,6 @@ static int inject() {
 int main(const int argc, char* argv[])
 {
    inject();
-   Sleep(5000);
+   Sleep(3000);
    return 0;
 }

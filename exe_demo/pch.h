@@ -14,5 +14,4 @@
 #include <thread>
 
 #include <flashgui.h>
-
 #pragma comment(lib, "flashgui.lib")

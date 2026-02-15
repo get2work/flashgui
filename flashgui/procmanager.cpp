@@ -67,7 +67,7 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 		window.handle = CreateWindowExA(
 			0, // No extended styles
 			wc.lpszClassName, // Class name	
-			"FlashGUI Window", // Window title
+			"DX12 Window", // Window title
 			WS_OVERLAPPEDWINDOW, // Window style
 			CW_USEDEFAULT, CW_USEDEFAULT, window.width, window.height, // Default position and size
 			nullptr, // No parent window

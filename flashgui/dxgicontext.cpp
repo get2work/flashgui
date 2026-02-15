@@ -10,12 +10,13 @@ void s_dxgicontext::initialize_hooked() {
 
 	HRESULT hr = swapchain->GetDevice(IID_PPV_ARGS(&device));
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to get device from swapchain, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to get device from swapchain, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	create_rtv_heap();
-	create_resources();
-	create_quad_buffers();
+	create_backbuffers();
 }
 
 void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
@@ -23,8 +24,7 @@ void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 
 	create_device_and_swapchain();
 	create_rtv_heap();
-	create_resources();
-	create_quad_buffers();
+	create_backbuffers();
 }
 
 void s_dxgicontext::create_device_and_swapchain() {
@@ -33,13 +33,17 @@ void s_dxgicontext::create_device_and_swapchain() {
 	// Create DXGI factory
 	hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgi_factory));
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create DXGI factory, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to create DXGI factory, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	// New DXGI factory feature for DirectX 12, cleaner than enuming all adapters
 	hr = dxgi_factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
 	if (FAILED(hr) || !adapter) {
-		throw std::runtime_error("Failed to enumerate adapter, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to enumerate adapter, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	// Create D3D12 device
@@ -53,7 +57,9 @@ void s_dxgicontext::create_device_and_swapchain() {
 	}
 
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create D3D12 device, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to create D3D12 device, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	D3D12_COMMAND_QUEUE_DESC queue_desc = {};
@@ -62,7 +68,9 @@ void s_dxgicontext::create_device_and_swapchain() {
 
 	hr = device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&cmd_queue));
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create command queue, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to create command queue, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
@@ -89,17 +97,23 @@ void s_dxgicontext::create_device_and_swapchain() {
 		&swapchain1 // Output swapchain pointer
 	);
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create swapchain, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to create swapchain, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	hr = dxgi_factory->MakeWindowAssociation(process->window.handle, DXGI_MWA_NO_ALT_ENTER);
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to make window association, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to make window association, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	hr = swapchain1.As(&swapchain);
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to query IDXGISwapChain3 from IDXGISwapChain1, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to query IDXGISwapChain3 from IDXGISwapChain1, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 }
 
@@ -112,7 +126,9 @@ void s_dxgicontext::create_rtv_heap() {
 	HRESULT hr = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&rtv_heap));
 
 	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create RTV heap, HRESULT: " + std::to_string(hr));
+		std::string msg = "Failed to create RTV heap, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
 	}
 
 	// Get the size of each descriptor in the RTV heap
@@ -127,43 +143,22 @@ void s_dxgicontext::create_backbuffers() {
 	for (UINT i = 0; i < buffer_count; ++i) {
 		HRESULT hr = swapchain->GetBuffer(i, IID_PPV_ARGS(&back_buffers[i]));
 		if (FAILED(hr)) {
-			throw std::runtime_error("Failed to get back buffer " + std::to_string(i) + ", HRESULT: " + std::to_string(hr));
+			std::string msg = "Failed to get back buffer " + std::to_string(i) + ", HRESULT: " + std::to_string(hr) + "\n";
+			OutputDebugStringA(msg.c_str());
+			throw std::runtime_error(msg);
 		}
 		device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtv_handle);
 		rtv_handle.ptr += rtv_descriptor_size; // Move to the next descriptor handle
 	}
 }
 
-void s_dxgicontext::create_srv_heap() {
-
-	//survives resizebuffers
-	if (!srv) {
-		srv = std::make_unique<c_srv_allocator>();
-
-		// Initialize with a reasonable number of descriptors
-		srv->initialize(device, 128, buffer_count);
-	}
-
-	for (auto& buffer : back_buffers) {
-		if (buffer) {
-			srv->allocate_backbuffer_srv(buffer, dxgiformat); // Allocate SRV for each backbuffer
-		}
-	}
-}
-
-void s_dxgicontext::release_resources() {
+void s_dxgicontext::release_backbuffers() {
 	// Release backbuffers
 	for (auto& buffer : back_buffers) {
-		srv->free_if_backbuffer(buffer.Get());
+		//srv->free_if_backbuffer(buffer.Get());
 		buffer.Reset();
 	}
 	back_buffers.clear();
-}
-
-void s_dxgicontext::create_resources() {
-
-	create_backbuffers();
-	create_srv_heap();
 }
 
 void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) const {
@@ -175,75 +170,15 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 		//call swapchain resize buffers
 		HRESULT hr = swapchain->ResizeBuffers(buffer_count, width, height, format, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		if (FAILED(hr)) {
-			throw std::runtime_error("Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr));
+			std::string msg = "Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr) + "\n";
+			OutputDebugStringA(msg.c_str());
+			throw std::runtime_error(msg);
 		}
 
 	}
 	catch (...) {
 		std::throw_with_nested(std::runtime_error("Error during backbuffer resize"));
 	}
-}
-
-void s_dxgicontext::create_quad_buffers() {
-	// --- Vertex Buffer ---
-	const UINT vb_size = sizeof(quad_vertices);
-
-	D3D12_HEAP_PROPERTIES props = {};
-	props.Type = D3D12_HEAP_TYPE_UPLOAD;
-	props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-
-	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
-
-	HRESULT hr = device->CreateCommittedResource(
-		&props,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_quad_vertex_buffer)
-	);
-
-	if (FAILED(hr))
-		throw std::runtime_error("Failed to create m_quad_vertex_buffer resource HRESULT: " + std::to_string(hr));
-
-	// Upload vertex data
-	void* vb_ptr = nullptr;
-	m_quad_vertex_buffer->Map(0, nullptr, &vb_ptr);
-	memcpy(vb_ptr, quad_vertices, vb_size);
-	m_quad_vertex_buffer->Unmap(0, nullptr);
-
-	m_quad_vbv.BufferLocation = m_quad_vertex_buffer->GetGPUVirtualAddress();
-	m_quad_vbv.SizeInBytes = vb_size;
-	m_quad_vbv.StrideInBytes = sizeof(float) * 2;
-
-	// --- Index Buffer ---
-	const UINT ib_size = sizeof(quad_indices);
-
-	D3D12_RESOURCE_DESC ib_desc = desc;
-	ib_desc.Width = ib_size;
-
-	hr = device->CreateCommittedResource(
-		&props,
-		D3D12_HEAP_FLAG_NONE,
-		&ib_desc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_quad_index_buffer)
-	);
-
-	if (FAILED(hr))
-		throw std::runtime_error("Failed to create m_quad_index_buffer resource HRESULT: " + std::to_string(hr));
-
-	// Upload index data
-	void* ib_ptr = nullptr;
-	m_quad_index_buffer->Map(0, nullptr, &ib_ptr);
-	memcpy(ib_ptr, quad_indices, ib_size);
-	m_quad_index_buffer->Unmap(0, nullptr);
-
-	m_quad_ibv.BufferLocation = m_quad_index_buffer->GetGPUVirtualAddress();
-	m_quad_ibv.SizeInBytes = ib_size;
-	m_quad_ibv.Format = DXGI_FORMAT_R16_UINT;
 }
 
 void s_dxgicontext::create_pipeline() {
@@ -255,64 +190,119 @@ void s_dxgicontext::create_pipeline() {
 
 	shaders->initialize(device);
 
-	// One SRV range: t0, space0, 1 descriptor
+	HRESULT reason = device->GetDeviceRemovedReason();
+	if (reason != S_OK) {
+		std::string msg = "[flashgui] Device removed shaders->initialize, reason: " + std::to_string(reason) + "\n";
+		OutputDebugStringA(msg.c_str());
+		std::cerr << msg;
+	}
+
+	// Feature diagnostics: ResourceHeapTier
+	D3D12_FEATURE_DATA_D3D12_OPTIONS options{};
+	HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+	if (FAILED(hr)) {
+		std::string msg = "CheckFeatureSupport(D3D12_OPTIONS) failed, HRESULT: " + std::to_string(hr) + "\n";
+		OutputDebugStringA(msg.c_str());
+		std::cerr << msg;
+	} else {
+		std::ostringstream oss;
+		oss << "[flashgui] D3D12_OPTIONS.ResourceHeapTier = " << static_cast<int>(options.ResourceHeapTier) << "\n";
+		OutputDebugStringA(oss.str().c_str());
+		std::cerr << oss.str();
+	}
+
+	reason = device->GetDeviceRemovedReason();
+	if (reason != S_OK) {
+		std::string msg = "[flashgui] Device removed CheckFeatureSupport, reason: " + std::to_string(reason) + "\n";
+		OutputDebugStringA(msg.c_str());
+		std::cerr << msg;
+	}
+
+
+	// Build ImGui-exact root signature
 	D3D12_DESCRIPTOR_RANGE1 srv_range{};
 	srv_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srv_range.NumDescriptors = 1;
-	srv_range.BaseShaderRegister = 0; // t0
+	srv_range.BaseShaderRegister = 0;
 	srv_range.RegisterSpace = 0;
 	srv_range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-	srv_range.OffsetInDescriptorsFromTableStart = 0;
+	srv_range.OffsetInDescriptorsFromTableStart = 0; // CRITICAL
 
-	// One static sampler: s0
 	D3D12_STATIC_SAMPLER_DESC samp{};
-	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // changed from MIN_MAG_MIP_LINEAR to POINT
+	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 	samp.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	samp.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	samp.MaxLOD = D3D12_FLOAT32_MAX;
 	samp.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	samp.ShaderRegister = 0; // s0
+	samp.ShaderRegister = 0;
 	samp.RegisterSpace = 0;
 	samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	root_sig = c_rootsig_builder(device)
-		.add_root_cbv(0, D3D12_SHADER_VISIBILITY_ALL)                  // b0
-		.add_descriptor_table({ srv_range }, D3D12_SHADER_VISIBILITY_PIXEL) // param 1: SRV table (t0)
-		.add_static_sampler(samp)
-		.build();
+	try {
+		// use build_safe() to guarantee the ImGui-exact signature serialized with version 1.0
+		root_sig = c_rootsig_builder(device)
+			.build_safe();
+	}
+	catch (const std::exception& ex) {
+		std::string msg = "Failed to create root signature: ";
+		msg += ex.what();
+		msg += "\n";
+		OutputDebugStringA(msg.c_str());
+		std::cerr << msg;
+		throw;
+	}
 
-	if (!root_sig) 
-		throw std::runtime_error("Failed to create root signature");
+
+	if (!root_sig)
+		throw std::runtime_error("Failed to create root signature (unknown reason)");
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> input_layout = {
-		// Slot 0: unit quad vertex
 		{ "POSITION",   0, DXGI_FORMAT_R32G32_FLOAT,    0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
-
-		// Slot 1: instance data (shape_instance)
-		{ "TEXCOORD",   1, DXGI_FORMAT_R32G32_FLOAT,    1, 0,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_pos
-		{ "TEXCOORD",   2, DXGI_FORMAT_R32G32_FLOAT,    1, 8,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_size
-		{ "TEXCOORD",   3, DXGI_FORMAT_R32_FLOAT,       1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_rot
-		{ "TEXCOORD",   4, DXGI_FORMAT_R32_FLOAT,       1, 20, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_stroke
-		{ "TEXCOORD",   5, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_clr
-		{ "TEXCOORD",   6, DXGI_FORMAT_R32_UINT,        1, 40, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }, // inst_type
-		{ "TEXCOORD",   7, DXGI_FORMAT_R32G32B32A32_FLOAT,    1, 44, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 } // inst_uv
+		{ "TEXCOORD",   1, DXGI_FORMAT_R32G32_FLOAT,    1, 0,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   2, DXGI_FORMAT_R32G32_FLOAT,    1, 8,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   3, DXGI_FORMAT_R32_FLOAT,       1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   4, DXGI_FORMAT_R32_FLOAT,       1, 20, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   5, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   6, DXGI_FORMAT_R32_UINT,        1, 40, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		{ "TEXCOORD",   7, DXGI_FORMAT_R32G32B32A32_FLOAT,    1, 44, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
 	};
 
-	pso_triangle = c_pso_builder(device)
-		.set_root_signature(root_sig.Get())
-		.set_vertex_shader(shaders->get_vs_blob())
-		.set_pixel_shader(shaders->get_ps_blob())
-		.set_input_layout(input_layout)
-		.set_rtv_format(0, dxgiformat)
-		.disable_depth()
-		.enable_alpha_blending()
-		.set_primitive_topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)
-		.set_dsv_format(DXGI_FORMAT_UNKNOWN) // No depth-stencil view
-		.set_num_render_targets(1) // One render target
-		.set_sample_desc({ sample_count, num_quality_levels })
-		.build();
+	// Defensive RTV validation
+	if (dxgiformat == DXGI_FORMAT_UNKNOWN) {
+		std::string msg = "Backbuffer format is unknown, cannot create PSO\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
+	}
 
-	if (!pso_triangle)
-		throw std::runtime_error("Failed to create PSO for triangles");
+	try {
+		pso_triangle = c_pso_builder(device)
+			.set_root_signature(root_sig.Get())
+			.set_vertex_shader(shaders->get_vs_blob())
+			.set_pixel_shader(shaders->get_ps_blob())
+			.set_input_layout(input_layout)
+			.set_rtv_format(0, dxgiformat)
+			.disable_depth()
+			.enable_alpha_blending()
+			.set_primitive_topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)
+			.set_dsv_format(DXGI_FORMAT_UNKNOWN)
+			.set_num_render_targets(1)
+			.set_sample_desc({ sample_count, num_quality_levels })
+			.allow_empty_input_layout(true) // tolerate missing input layout in certain hooked environments
+			.build();
+	}
+	catch (const std::exception& ex) {
+		std::string msg = "Failed to create PSO for triangles: ";
+		msg += ex.what();
+		msg += "\n";
+		OutputDebugStringA(msg.c_str());
+		std::cerr << msg;
+		throw;
+	}
+
+	if (!pso_triangle) {
+		std::string msg = "Failed to create PSO for triangles (unknown reason)\n";
+		OutputDebugStringA(msg.c_str());
+		throw std::runtime_error(msg);
+	}
 }

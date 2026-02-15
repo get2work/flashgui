@@ -96,7 +96,8 @@ namespace fgui {
 
 		std::unordered_map<uint32_t, font_glyph_info> m_font_glyphs;
 		Microsoft::WRL::ComPtr<ID3D12Resource>        m_font_texture;
-		D3D12_GPU_DESCRIPTOR_HANDLE                   m_font_srv{};
+		ComPtr<ID3D12DescriptorHeap> m_font_srv_heap;
+		D3D12_GPU_DESCRIPTOR_HANDLE  m_font_srv_gpu{};
 
 		enum shape_type : int {
 			quad = 0,

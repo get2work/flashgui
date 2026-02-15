@@ -5,8 +5,6 @@
 #include <Windows.h>
 #include <wrl.h>
 #include <wrl/client.h>
-
-#include "srv_allocator.hpp"
 #include "procmanager.h"
 
 #include "shader_loader.hpp"
@@ -42,7 +40,6 @@ namespace fgui {
 		ComPtr<ID3D12RootSignature> root_sig; // Root signature for the pipeline
 		ComPtr<ID3D12PipelineState> pso_triangle; // Pipeline state object for triangles
 
-		std::unique_ptr<c_srv_allocator> srv; // Shader resource view allocator
 		std::unique_ptr<c_shader_loader> shaders; // Shader loader
 
 		ComPtr<ID3D12DescriptorHeap> rtv_heap; // Render target view heap
@@ -52,10 +49,6 @@ namespace fgui {
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
 		uint32_t buffer_count = 4; // Default buffer count for swapchain
 
-		ComPtr<ID3D12Resource> m_quad_vertex_buffer;
-		ComPtr<ID3D12Resource> m_quad_index_buffer;
-		D3D12_VERTEX_BUFFER_VIEW m_quad_vbv = {};
-		D3D12_INDEX_BUFFER_VIEW  m_quad_ibv = {};
 
 		DXGI_FORMAT dxgiformat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		UINT sample_count = 1; // Desired MSAA level (e.g., 2, 4, 8)
@@ -69,13 +62,9 @@ namespace fgui {
 
 		void create_device_and_swapchain();
 		void create_rtv_heap();
-		void create_srv_heap();
-		void release_resources();
-		void create_resources();
+		void release_backbuffers();
 		void create_backbuffers();
 		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) const;
-
-		void create_quad_buffers();
 		
 		void create_pipeline();
 		void initialize_hooked();

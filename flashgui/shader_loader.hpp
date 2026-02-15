@@ -36,6 +36,8 @@ namespace fgui {
             throw_if_failed(D3DCreateBlob(ps_bytecode.size, &m_ps_blob));
             memcpy(m_ps_blob->GetBufferPointer(), ps_bytecode.data, ps_bytecode.size);
 
+
+
             std::cout << "[Shader Loader] Bytecode loaded: VS=" << vs_bytecode.size
                 << "B PS=" << ps_bytecode.size << "B\n";
         }
