@@ -241,19 +241,13 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 	if (create_heap_and_buffers)
 		m_dx.create_backbuffers();
 
-	//store window size as long
-	GetClientRect(process->window.handle, &m_scissor_rect);
-
-	long width = m_scissor_rect.right - m_scissor_rect.left;
-	long height = m_scissor_rect.bottom - m_scissor_rect.top;
-
 	for (auto& frame : m_frame_resources)
 		frame.initialize(m_dx.device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
 
 	// CRITICAL: Update projection matrix and viewport/scissor for the new window size
 	// even on the first frame after resize
-	const float fwidth = static_cast<float>(width);
-	const float fheight = static_cast<float>(height);
+	const float fwidth = static_cast<float>(process->window.width);
+	const float fheight = static_cast<float>(process->window.height);
 
 	m_viewport = {
 		0.0f, 0.0f,
@@ -263,8 +257,8 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 
 	m_scissor_rect = {
 		0l, 0l,
-		width,
-		height
+		static_cast<long>(process->window.width),
+		static_cast<long>(process->window.height)
 	};
 
 	m_transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
@@ -514,7 +508,7 @@ void c_renderer::end_frame() {
 	}
 }
 
-void c_renderer::post_present(const HRESULT& present_result) {
+void c_renderer::post_present() {
 	// increment the frame index
 	if (m_dx.swapchain)
 	m_frame_index = m_dx.swapchain->GetCurrentBackBufferIndex();

@@ -29,6 +29,11 @@ namespace fgui {
 				return vec2i(static_cast<int>(width), static_cast<int>(height));
 			}
 
+			void set_size(UINT new_width, UINT new_height) {
+				width = new_width;
+				height = new_height;
+			}
+
 		} window;
 
 		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);

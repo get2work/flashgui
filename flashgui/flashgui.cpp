@@ -15,7 +15,6 @@ namespace fgui {
 
 	bool initialize(UINT buffer_count, IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue) {
 		if (!render) {
-			// Standalone mode, create our renderer instance
 			process = std::make_unique<c_process>();
 
 			render = std::make_unique<c_renderer>(D3D_FEATURE_LEVEL_12_1, buffer_count);

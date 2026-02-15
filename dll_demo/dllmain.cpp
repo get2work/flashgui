@@ -73,9 +73,7 @@ static unsigned __stdcall entry_function(void* param) {
         if (GetAsyncKeyState(VK_END) & 1) { // Press END key to exit
             std::cout << "[flashgui] END key pressed, exiting..." << std::endl;
             break;
-		}
-
-
+        }
 
         // Main loop for the DLL, can be used to update GUI or handle events
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep to avoid busy-waiting
@@ -85,6 +83,7 @@ static unsigned __stdcall entry_function(void* param) {
 	MH_Uninitialize();
 
 	std::cout << "[flashgui] Exiting..." << std::endl;
+    goto exit;
 
 exit:
     shutdown_console();

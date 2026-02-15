@@ -20,7 +20,7 @@ HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interv
 
 	HRESULT hr = fgui::hk::o_present(p_swapchain, sync_interval, flags);
 
-	fgui::render->post_present(hr);
+	fgui::render->post_present();
 
 	return hr;
 }
@@ -31,9 +31,7 @@ HRESULT __fastcall hooks::resize_buffers(IDXGISwapChain3* p_this, UINT buffer_co
 	
 	fgui::render->release_resources();
 
-	fgui::process->window.width = width;
-	fgui::process->window.height = height;
-
+	fgui::process->window.set_size(width, height);
 
 	HRESULT hr = fgui::hk::o_resize_buffers(p_this, buffer_count, width, height, new_format, swapchain_flags);
 
