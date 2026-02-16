@@ -14,7 +14,11 @@ namespace fgui {
 		vec2i(const DirectX::XMINT2& vec) : x(vec.x), y(vec.y) {}
 		vec2i(const vec2i&) = default;
 
-		vec2i& operator=(const vec2i&) = default;
+		vec2i& operator=(const vec2i& other) {
+			x = other.x;
+			y = other.y;
+			return *this;
+		}
 
 		//make fully compatible with directx math types
 		operator DirectX::XMFLOAT2() const {
@@ -24,6 +28,42 @@ namespace fgui {
 			return DirectX::XMINT2(x, y);
 		}
 
+		inline void clamp_to_screen(const vec2i& win_size, const vec2i& size) {
+			x = std::min(std::max(0, x), win_size.x - size.x);
+			y = std::min(std::max(0, y), win_size.y - size.y);
+		}
+
+		vec2i operator+(const vec2i& v) const {
+			return vec2i(x + v.x, y + v.y);
+		}
+
+		vec2i operator-(const vec2i& v) const {
+			return vec2i(x - v.x, y - v.y);
+		}
+
+		vec2i operator+(const int& v) const {
+			return vec2i(x + v, y + v);
+		}
+
+		vec2i operator-(const int& v) const {
+			return vec2i(x - v, y - v);
+		}
+
+		vec2i& operator+=(int v) {
+			x += v;
+			y += v;
+			return *this;
+		}
+
+		vec2i& operator+=(const vec2i& v) {
+			x += v.x; y += v.y;
+			return *this;
+		}
+
+		vec2i& operator-=(const vec2i& v) {
+			x -= v.x; y -= v.y;
+			return *this;
+		}
 	};
 
 	class vec2f {

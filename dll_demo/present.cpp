@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "hooks.h"
-#include "flashgui.h"
+#include "menu.h"
 
 fgui::font_handle verdanab_24;
 
@@ -12,12 +12,12 @@ HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interv
 	if (first_present) {
 		first_present = false;
 		fgui::render->initialize(p_swapchain, d3d12_command_queue, sync_interval, flags);
-		verdanab_24 = fgui::render->get_or_create_font(L"Verdana", DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, 24);
+		verdanab_24 = fgui::render->get_or_create_font(L"Verdana", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 12);
 	}
 
 	fgui::render->begin_frame();
 
-	fgui::render->draw_text("DLL within process", { 100, 300 }, verdanab_24, { 1.f, 0.7f, 0.7f, 1.f });
+	menu::window.draw();
 
 	fgui::render->end_frame();
 

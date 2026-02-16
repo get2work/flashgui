@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "../renderer.h"
+#include "../gui.h"
 
 namespace fgui {
 
