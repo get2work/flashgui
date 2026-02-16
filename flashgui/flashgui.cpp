@@ -27,9 +27,7 @@ namespace fgui {
 
 			render->initialize(swapchain, cmd_queue);
 
-			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
-
-			
+			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));	
 		}
 		return true; // Initialization successful
 	}

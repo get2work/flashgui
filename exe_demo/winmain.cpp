@@ -51,7 +51,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	auto comicsans16 = fgui::render->get_or_create_font(L"Comic Sans MS", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 16);
 	printf("ComicSansMS16 font handle: %u\n", comicsans16);
 
-	auto impact32 = fgui::render->get_or_create_font(L"Verdana", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 14);
+	auto impact32 = fgui::render->get_or_create_font(L"Vladimir Script", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 30);
 	printf("Impact font handle: %u\n", impact32);
 	
 	MSG msg{}; bool running = true;
@@ -80,7 +80,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->draw_text("DX12 Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, verdanab24, {0.f, 1.f, 1.f, 1.f});
 		fgui::render->draw_text("Comic Sans Text", {200, 80}, comicsans16, {1.f, 1.f, 0.f, 1.f});
 
-		fgui::render->draw_text("verdana 14 $", { 200, 110 }, impact32, { 1.f, 1.f, 1.f, 1.f });
+		fgui::render->draw_text("Vladimir Script $", { 200, 140 }, impact32, { 1.f, 1.f, 1.f, 1.f });
 		fgui::render->end_frame();
 	}
 

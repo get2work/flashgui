@@ -351,7 +351,7 @@ void s_dxgicontext::begin_frame() {
 
 			//exception wrapped resize_buffers 
 			try {
-				resize_backbuffers(process->window.width, process->window.height);
+				resize_backbuffers(process->window.width, process->window.height, dxgiformat);
 			}
 			catch (const std::exception& e) {
 				std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
@@ -363,11 +363,6 @@ void s_dxgicontext::begin_frame() {
 		return;
 	}
 
-	//m_dx->srv->begin_frame(m_frame_index);
-
-	if (!hooked)
-		fr.wait_for_gpu();
-
 	fr.reset_upload_cursor();
 	fr.reset(pso_triangle);
 
@@ -377,36 +372,8 @@ void s_dxgicontext::begin_frame() {
 	ID3D12DescriptorHeap* heaps[] = { fonts->get_font_srv_heap().Get()};
 	cmd->SetDescriptorHeaps(1, heaps);
 
-	// Set root signature
 	cmd->SetGraphicsRootSignature(root_sig.Get());
-
-	// Set the projection matrix as 16x32-bit constants (ImGui-exact root signature expects this).
-	// Build the projection exactly like ImGui: an orthographic projection mapped to clip space.
-	// Left = 0, Right = width, Top = 0, Bottom = height
-	const float L = 0.0f;
-	const float R = static_cast<float>(viewport.Width);
-	const float T = 0.0f;
-	const float B = static_cast<float>(viewport.Height);
-
-	// ImGui's projection matrix layout (row-major float[4][4]):
-	// { { 2/(R-L),      0,        0, 0 },
-	//   {      0,  2/(T-B),      0, 0 },
-	//   {      0,      0,   0.5f, 0 },
-	//   { (R+L)/(L-R), (T+B)/(B-T), 0.5f, 1 } };
-	// We'll fill a float[16] in the same order and pass it directly.
-	float proj[16];
-	ZeroMemory(proj, sizeof(proj));
-	proj[0] = 2.0f / (R - L);
-	proj[5] = 2.0f / (T - B);
-	proj[10] = 0.5f;
-	proj[12] = (R + L) / (L - R);
-	proj[13] = (T + B) / (B - T);
-	proj[14] = 0.5f;
-	proj[15] = 1.0f;
-
-	// Set 16 x 32-bit root constants at slot 0 (matches the ImGui DX12 root signature)
-	cmd->SetGraphicsRoot32BitConstants(0, 16, proj, 0);
-
+	cmd->SetGraphicsRoot32BitConstants(0, 16, transform_cb.projection_matrix.r, 0);
 	cmd->RSSetViewports(1, &viewport);
 	cmd->RSSetScissorRects(1, &scissor_rect);
 
@@ -419,8 +386,6 @@ void s_dxgicontext::begin_frame() {
 	cmd->ResourceBarrier(1, &to_rtv);
 
 	auto rtv_handle = get_rtv_handle(frame_index);
-	const FLOAT clear_color[4] = { 0.f, 0.f, 0.f, 0.f };
-
 	cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
 }
 
@@ -450,7 +415,7 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 		D3D12_GPU_VIRTUAL_ADDRESS inst_va = fr.push_bytes(
 			shapes[i].data(), 
 			shapes[i].size() * sizeof(shape_instance), 
-			16);
+		16);
 
 		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
 		vbv_inst.BufferLocation = inst_va;
@@ -513,7 +478,7 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 				std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
 			}
 		}
-
+		fr.wait_for_gpu();
 		// In standalone mode, we can wait for the GPU to finish before starting the next frame
 		if (swapchain)
 			frame_index = swapchain->GetCurrentBackBufferIndex();

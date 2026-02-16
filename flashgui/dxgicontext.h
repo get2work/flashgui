@@ -109,7 +109,7 @@ namespace fgui {
 		void begin_frame();
 		void end_frame(std::vector<std::vector<shape_instance>>& shapes);
 		void create_backbuffers();
-		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) const;
+		void resize_backbuffers(UINT width, UINT height, DXGI_FORMAT format) const;
 		
 		void create_pipeline();
 		void initialize(IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr, UINT sync_interval = 1, UINT flags = 0);

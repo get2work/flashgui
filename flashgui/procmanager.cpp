@@ -92,11 +92,10 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 	else if (!in_hwnd) {
 		window.handle = find_process_window(pid, "FlashGUIWindowClass");
 
-		if (!window.handle)
+		if (!window.handle) {
 			printf("Failed to find window for PID %d\n", pid);
-	}
-
-	if (window.handle) {
+			throw std::runtime_error("Failed to find window for PID " + std::to_string(pid));
+		}
 		RECT client_rect;
 		GetClientRect(window.handle, &client_rect);
 		window.width = client_rect.right - client_rect.left;

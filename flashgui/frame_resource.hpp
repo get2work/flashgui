@@ -22,7 +22,6 @@ namespace fgui {
 		size_t upload_cursor = 0;
 
 		D3D12_GPU_VIRTUAL_ADDRESS upload_gpu_base = 0;
-		D3D12_GPU_VIRTUAL_ADDRESS cb_gpu_va = 0;
 
 		static inline size_t align_up(size_t v, size_t a) { return (v + (a - 1)) & ~(a - 1); }
 
@@ -127,7 +126,6 @@ namespace fgui {
 			
 			upload_heap.Reset();
 			upload_ptr = nullptr;
-			cb_gpu_va = 0;
 
 			fence.Reset();
 			fence_value = 0;
