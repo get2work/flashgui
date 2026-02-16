@@ -123,8 +123,9 @@ namespace fgui {
 			m_blend_desc.RenderTarget[0].SrcBlend = premultiplied ? D3D12_BLEND_ONE : D3D12_BLEND_SRC_ALPHA;
 			m_blend_desc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 			m_blend_desc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+			// premultiplied RGB requires alpha blending to accumulate correctly as well
 			m_blend_desc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-			m_blend_desc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+			m_blend_desc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA; // was D3D12_BLEND_ZERO
 			m_blend_desc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 			m_blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 			return *this;

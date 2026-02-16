@@ -4,8 +4,35 @@
 
 using namespace fgui;
 
+void s_dxgicontext::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue, UINT sync_interval, UINT flags) {
+	hooked = swapchain && cmd_queue;
+
+	if (hooked) {
+		this->swapchain.Attach(swapchain);
+		this->cmd_queue.Attach(cmd_queue);
+		this->sync_interval = sync_interval;
+		this->swapchain_flags = flags;
+
+		DXGI_SWAP_CHAIN_DESC desc;
+		HRESULT hr = this->swapchain->GetDesc(&desc);
+		if (FAILED(hr)) {
+			throw std::runtime_error("Failed to get swapchain description, HRESULT: " + std::to_string(hr));
+		}
+
+		buffer_count = desc.BufferCount;
+
+		initialize_hooked();
+	} else {
+		initialize_standalone(buffer_count);
+	}
+
+	frame_resources.resize(buffer_count);
+	create_pipeline();
+
+	create_resources();
+}
+
 void s_dxgicontext::initialize_hooked() {
-	hooked = true;
 
 	HRESULT hr = swapchain->GetDevice(IID_PPV_ARGS(&device));
 	if (FAILED(hr)) {
@@ -151,7 +178,49 @@ void s_dxgicontext::create_backbuffers() {
 	}
 }
 
-void s_dxgicontext::release_backbuffers() {
+void s_dxgicontext::wait_for_gpu() {
+	frame_index = swapchain->GetCurrentBackBufferIndex();
+	frame_resource& fr = frame_resources[frame_index];
+	fr.signal(cmd_queue);
+	fr.wait_for_gpu();
+}
+
+void s_dxgicontext::create_resources() {
+
+	for (auto& frame : frame_resources)
+		frame.initialize(device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
+
+	// CRITICAL: Update projection matrix and viewport/scissor for the new window size
+	// even on the first frame after resize
+	const float fwidth = static_cast<float>(process->window.width);
+	const float fheight = static_cast<float>(process->window.height);
+
+	viewport = {
+		0.0f, 0.0f,
+		fwidth, fheight,
+		0.0f, 1.0f
+	};
+
+	scissor_rect = {
+		0l, 0l,
+		static_cast<long>(process->window.width),
+		static_cast<long>(process->window.height)
+	};
+
+	transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
+		0.0f, fwidth,   // left, right
+		fheight, 0.0f, // bottom, top
+		0.0f, 1.0f   // near, far
+	);
+
+	frame_index = swapchain->GetCurrentBackBufferIndex();
+}
+
+void s_dxgicontext::release_resources() {
+	for (auto& fr : frame_resources) {
+		fr.release();
+	}
+
 	// Release backbuffers
 	for (auto& buffer : back_buffers) {
 		//srv->free_if_backbuffer(buffer.Get());
@@ -252,7 +321,7 @@ void s_dxgicontext::create_pipeline() {
 			.set_input_layout(input_layout)
 			.set_rtv_format(0, dxgiformat)
 			.disable_depth()
-			.enable_alpha_blending()
+			.enable_alpha_blending(true) // <- enable premultiplied blending
 			.set_primitive_topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)
 			.set_dsv_format(DXGI_FORMAT_UNKNOWN)
 			.set_num_render_targets(1)
@@ -267,5 +336,186 @@ void s_dxgicontext::create_pipeline() {
 		OutputDebugStringA(msg.c_str());
 		std::cerr << msg;
 		throw;
+	}
+}
+
+void s_dxgicontext::begin_frame() {
+	frame_resource& fr = get_current_frame_resource();
+
+	if (process->needs_resize()) {
+		if (!hooked) {
+			fr.signal(cmd_queue);
+			fr.wait_for_gpu();
+
+			release_resources();
+
+			//exception wrapped resize_buffers 
+			try {
+				resize_backbuffers(process->window.width, process->window.height);
+			}
+			catch (const std::exception& e) {
+				std::cerr << "[flashgui] Error during frame resize: " << e.what() << std::endl;
+			}
+
+			create_backbuffers();
+			create_resources();
+		}
+		return;
+	}
+
+	//m_dx->srv->begin_frame(m_frame_index);
+
+	if (!hooked)
+		fr.wait_for_gpu();
+
+	fr.reset_upload_cursor();
+	fr.reset(pso_triangle);
+
+	auto& cmd = fr.command_list;
+
+	// Bind SRV descriptor heap (font + backbuffer SRVs, etc.)
+	ID3D12DescriptorHeap* heaps[] = { fonts->get_font_srv_heap().Get()};
+	cmd->SetDescriptorHeaps(1, heaps);
+
+	// Set root signature
+	cmd->SetGraphicsRootSignature(root_sig.Get());
+
+	// Set the projection matrix as 16x32-bit constants (ImGui-exact root signature expects this).
+	// Build the projection exactly like ImGui: an orthographic projection mapped to clip space.
+	// Left = 0, Right = width, Top = 0, Bottom = height
+	const float L = 0.0f;
+	const float R = static_cast<float>(viewport.Width);
+	const float T = 0.0f;
+	const float B = static_cast<float>(viewport.Height);
+
+	// ImGui's projection matrix layout (row-major float[4][4]):
+	// { { 2/(R-L),      0,        0, 0 },
+	//   {      0,  2/(T-B),      0, 0 },
+	//   {      0,      0,   0.5f, 0 },
+	//   { (R+L)/(L-R), (T+B)/(B-T), 0.5f, 1 } };
+	// We'll fill a float[16] in the same order and pass it directly.
+	float proj[16];
+	ZeroMemory(proj, sizeof(proj));
+	proj[0] = 2.0f / (R - L);
+	proj[5] = 2.0f / (T - B);
+	proj[10] = 0.5f;
+	proj[12] = (R + L) / (L - R);
+	proj[13] = (T + B) / (B - T);
+	proj[14] = 0.5f;
+	proj[15] = 1.0f;
+
+	// Set 16 x 32-bit root constants at slot 0 (matches the ImGui DX12 root signature)
+	cmd->SetGraphicsRoot32BitConstants(0, 16, proj, 0);
+
+	cmd->RSSetViewports(1, &viewport);
+	cmd->RSSetScissorRects(1, &scissor_rect);
+
+	D3D12_RESOURCE_BARRIER to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
+		get_back_buffer(frame_index).Get(),
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET
+	);
+
+	cmd->ResourceBarrier(1, &to_rtv);
+
+	auto rtv_handle = get_rtv_handle(frame_index);
+	const FLOAT clear_color[4] = { 0.f, 0.f, 0.f, 0.f };
+
+	cmd->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+}
+
+void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) {
+	frame_resource& fr = get_current_frame_resource();
+
+	auto& cmd = fr.command_list;
+
+	// *** DYNAMIC QUAD + INSTANCE ***
+	D3D12_GPU_VIRTUAL_ADDRESS quad_verts_va = fr.push_bytes(quad_vertices, sizeof(quad_vertices), 16);
+	D3D12_VERTEX_BUFFER_VIEW vbv_quad = {};
+	vbv_quad.BufferLocation = quad_verts_va;
+	vbv_quad.SizeInBytes = sizeof(quad_vertices);
+	vbv_quad.StrideInBytes = 8;  // float2
+
+	D3D12_GPU_VIRTUAL_ADDRESS quad_inds_va = fr.push_bytes(quad_indices, sizeof(quad_indices), 4);
+	D3D12_INDEX_BUFFER_VIEW quad_ibv = {};
+	quad_ibv.BufferLocation = quad_inds_va;
+	quad_ibv.SizeInBytes = sizeof(quad_indices);
+	quad_ibv.Format = DXGI_FORMAT_R16_UINT;
+
+	for (uint32_t i = 0; i < shapes.size(); i++) {
+
+		if (shapes[i].empty())
+			continue;
+
+		D3D12_GPU_VIRTUAL_ADDRESS inst_va = fr.push_bytes(
+			shapes[i].data(), 
+			shapes[i].size() * sizeof(shape_instance), 
+			16);
+
+		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
+		vbv_inst.BufferLocation = inst_va;
+		vbv_inst.SizeInBytes = static_cast<UINT>(shapes[i].size() * sizeof(shape_instance));
+		vbv_inst.StrideInBytes = sizeof(shape_instance);
+
+		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { vbv_quad, vbv_inst };
+		cmd->IASetVertexBuffers(0, 2, vbvs);
+
+		D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc = fonts->get_font_srv_gpu(i);
+		cmd->SetGraphicsRootDescriptorTable(1, gpu_desc);
+		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		cmd->IASetIndexBuffer(&quad_ibv);
+
+		cmd->DrawIndexedInstanced(
+			6,                                  // indices per instance (quad)
+			static_cast<UINT>(shapes[i].size()), // instance count
+			0,                                   // start index location
+			0,                                   // base vertex location
+			0                                    // start instance location
+		);
+
+		shapes[i].clear(); // Clear shapes after rendering to free up memory for the next frame
+	}
+
+	// Transition back to present
+	D3D12_RESOURCE_BARRIER to_present = CD3DX12_RESOURCE_BARRIER::Transition(
+		get_back_buffer(frame_index).Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PRESENT
+	);
+
+	//set resource barrier for present transition
+	cmd->ResourceBarrier(1, &to_present);
+
+	HRESULT hr = cmd->Close();
+	if (FAILED(hr)) {
+		char buf[256];
+		sprintf_s(buf, "Close FAILED: 0x%08X\n", hr);
+		OutputDebugStringA(buf);
+		return;  // DON'T ExecuteCommandLists on bad list
+	}
+
+	// execute the command list
+	ID3D12CommandList* cmd_lists[] = { cmd.Get() };
+	cmd_queue->ExecuteCommandLists(1, cmd_lists);
+
+	fr.signal(cmd_queue);
+
+	if (!hooked) {
+		// present the swapchain
+		HRESULT hr = swapchain->Present(sync_interval, swapchain_flags);
+
+		if (FAILED(hr)) {
+			std::cerr << "Failed to present swapchain HRESULT:" << hr << std::endl;
+
+			//directx device was removed
+			if (device && hr == DXGI_ERROR_DEVICE_REMOVED) {
+				HRESULT reason = device->GetDeviceRemovedReason();
+				std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
+			}
+		}
+
+		// In standalone mode, we can wait for the GPU to finish before starting the next frame
+		if (swapchain)
+			frame_index = swapchain->GetCurrentBackBufferIndex();
 	}
 }

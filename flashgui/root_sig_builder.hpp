@@ -184,7 +184,7 @@ namespace fgui {
 
             D3D12_DESCRIPTOR_RANGE srv_range{};
             srv_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-            srv_range.NumDescriptors = 1;
+            srv_range.NumDescriptors = 256;
             srv_range.BaseShaderRegister = 0; // t0
             srv_range.RegisterSpace = 0;
             srv_range.OffsetInDescriptorsFromTableStart = 0;

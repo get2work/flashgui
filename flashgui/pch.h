@@ -12,6 +12,7 @@
 #include <Windows.h>
 #include <array>
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <memory>
@@ -31,5 +32,7 @@
 #include <Shlwapi.h>
 #include <stdexcept>
 #include <thread>
+
+#include <dwrite.h>
 
 #endif //PCH_H

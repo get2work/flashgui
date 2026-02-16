@@ -7,7 +7,8 @@ namespace fgui {
 
 	//global definitions
 	std::unique_ptr<c_renderer> render = nullptr;
-	std::unique_ptr<c_process> process;
+	std::unique_ptr<c_process> process = nullptr;
+
 	hook_data hk::hookinfo = {};
 
 	hk::fn_present hk::o_present = nullptr;
@@ -28,8 +29,9 @@ namespace fgui {
 
 			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
 
-			return true; // Initialization successful
+			
 		}
+		return true; // Initialization successful
 	}
 
 	bool initialize(DWORD processID, HINSTANCE dll_module, HWND in_hwnd) {
