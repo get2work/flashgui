@@ -77,10 +77,10 @@ font_handle c_fonts::get_or_create_font(const std::wstring& family,
     // build atlas (may throw)
     if (!build_font_atlas(fh, atlas, device, cmd_queue, current_frame)) {
         // failed to build
-        std::string msg = "Failed to build font atlas for " + std::string(key.family.begin(), key.family.end()) +
-			" w=" + std::to_string(key.weight) + " s=" + std::to_string(key.style) + " sz=" + std::to_string(key.size_px);
-		OutputDebugStringA(msg.c_str());
-        std::cerr << msg;
+        std::wstring msg = L"Failed to build font atlas for " + key.family +
+            L" w=" + std::to_wstring(key.weight) + L" s=" + std::to_wstring(key.style) + L" sz=" + std::to_wstring(key.size_px);
+		OutputDebugStringW(msg.c_str());
+        std::wcerr << msg;
 
         return 0;
     }
