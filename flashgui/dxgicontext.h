@@ -63,39 +63,39 @@ namespace fgui {
 		ComPtr<ID3D12CommandQueue> cmd_queue;
 		ComPtr<IDXGISwapChain3> swapchain;
 
-		D3D12_VIEWPORT viewport = {}; // Viewport for rendering
-		D3D12_RECT scissor_rect = {}; // Scissor rectangle for rendering
+		D3D12_VIEWPORT viewport = {}; // viewport for rendering
+		D3D12_RECT scissor_rect = {}; // scissor rectangle for rendering
 
-		uint32_t frame_index = 0; // Current frame index
+		uint32_t frame_index = 0; // current frame index
 
-		// Constant buffer for transformations, aligned ttop o 256 bytes
+		// constant buffer for transformations, aligned to 256 bytes
 		struct alignas(256) transform_cb {
 			DirectX::XMMATRIX projection_matrix;
 		} transform_cb{};
 
-		std::vector<frame_resource> frame_resources; // Frame resources for command allocators and command lists
+		std::vector<frame_resource> frame_resources; // frame resources for command allocators and command lists
 
-		// Pipeline + Geometry components
-		ComPtr<ID3D12RootSignature> root_sig; // Root signature for the pipeline
-		ComPtr<ID3D12PipelineState> pso_triangle; // Pipeline state object for triangles
+		// pipeline + geometry components
+		ComPtr<ID3D12RootSignature> root_sig; // root signature for the pipeline
+		ComPtr<ID3D12PipelineState> pso_triangle; // pipeline state object for triangles
 
-		std::unique_ptr<c_shader_loader> shaders; // Shader loader
+		std::unique_ptr<c_shader_loader> shaders; // shader loader
 
-		ComPtr<ID3D12DescriptorHeap> rtv_heap; // Render target view heap
+		ComPtr<ID3D12DescriptorHeap> rtv_heap; // render target view heap
 
-		uint32_t rtv_descriptor_size = 0; // Size of render target view descriptor
+		uint32_t rtv_descriptor_size = 0; // size of render target view descriptor
 
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
-		uint32_t buffer_count = 4; // Default buffer count for swapchain
+		uint32_t buffer_count = 4; // default buffer count for swapchain
 
 
 		DXGI_FORMAT dxgiformat = DXGI_FORMAT_R8G8B8A8_UNORM;
-		UINT sample_count = 1; // Desired MSAA level (e.g., 2, 4, 8)
+		UINT sample_count = 1; // desired multi-sampling level (e.g., 2, 4, 8)
 		UINT num_quality_levels = 0;
-		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
+		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // default feature level
 
-		UINT sync_interval = 0; // V-sync off by default
-		UINT swapchain_flags = 0; // No special flags by default
+		UINT sync_interval = 0; // v-sync off by default
+		UINT swapchain_flags = 0; // no special flags by default
 
 		std::unique_ptr<c_fonts> fonts;
 

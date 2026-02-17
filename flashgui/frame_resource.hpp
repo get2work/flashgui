@@ -13,11 +13,11 @@ namespace fgui {
 		UINT64 fence_value = 0;
 		HANDLE fence_event = nullptr;
 
-		// Dynamic upload heap for GUI or batching
+		// dynamic upload heap for GUI or batching
 		ComPtr<ID3D12Resource> upload_heap;
 		UINT8* upload_ptr = nullptr;
 
-		// In frame_resource
+		// in frame_resource
 		size_t upload_size = 0;
 		size_t upload_cursor = 0;
 
@@ -27,7 +27,7 @@ namespace fgui {
 
 		void reset_upload_cursor() { upload_cursor = 0; }
 
-		// Push a constant buffer (returns GPU VA), 256B-aligned
+		// push a constant buffer (returns GPU VA), 256B-aligned
 		D3D12_GPU_VIRTUAL_ADDRESS push_cb(const void* data, size_t size_bytes) {
 
 			const size_t off = align_up(upload_cursor, 256);
@@ -53,8 +53,8 @@ namespace fgui {
 			return upload_gpu_base + off;
 		}
 
-		// Initialize the frame resource, creating command allocators, command lists, fences, and upload heaps.
-		// The heap size is the size of the upload heap in bytes.
+		// initialize the frame resource, creating command allocators, command lists, fences, and upload heaps.
+		// the heap size is the size of the upload heap in bytes.
 		void initialize(ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type, size_t heap_size) {
 
 			if (FAILED(device->CreateCommandAllocator(type, IID_PPV_ARGS(&command_allocator)))) {
@@ -65,7 +65,8 @@ namespace fgui {
 				throw std::runtime_error("Failed to create command list");
 			}
 
-			command_list->Close(); // Command lists are created in the recording state. Close it for now.
+			// command lists are created in the recording state. Close it for now.
+			command_list->Close(); 
 
 			if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)))) {
 				throw std::runtime_error("Failed to create fence");

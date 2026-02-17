@@ -20,7 +20,7 @@ namespace fgui {
 			return *this;
 		}
 
-		//make fully compatible with directx math types
+		// make fully compatible with directx math types
 		operator DirectX::XMFLOAT2() const {
 			return DirectX::XMFLOAT2(static_cast<float>(x), static_cast<float>(y));
 		}

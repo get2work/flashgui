@@ -56,7 +56,7 @@ void s_dxgicontext::initialize_standalone(const uint32_t& target_buf_count) {
 void s_dxgicontext::create_device_and_swapchain() {
 	HRESULT hr = S_OK;
 
-	// Create DXGI factory
+	// create DXGI factory
 	hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgi_factory));
 	if (FAILED(hr)) {
 		std::string msg = "Failed to create DXGI factory, HRESULT: " + std::to_string(hr) + "\n";
@@ -64,7 +64,7 @@ void s_dxgicontext::create_device_and_swapchain() {
 		throw std::runtime_error(msg);
 	}
 
-	// New DXGI factory feature for DirectX 12, cleaner than enuming all adapters
+	// new DXGI factory feature for DirectX 12, cleaner than enuming all adapters
 	hr = dxgi_factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
 	if (FAILED(hr) || !adapter) {
 		std::string msg = "Failed to enumerate adapter, HRESULT: " + std::to_string(hr) + "\n";
@@ -72,7 +72,7 @@ void s_dxgicontext::create_device_and_swapchain() {
 		throw std::runtime_error(msg);
 	}
 
-	// Create D3D12 device
+	// create D3D12 device
 	const D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0, D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
 	for (auto level : levels) {
 		hr = D3D12CreateDevice(adapter.Get(), level, IID_PPV_ARGS(&device));
@@ -89,8 +89,8 @@ void s_dxgicontext::create_device_and_swapchain() {
 	}
 
 	D3D12_COMMAND_QUEUE_DESC queue_desc = {};
-	queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE; // No special flags
-	queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // Direct command queue
+	queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE; // no special flags
+	queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // direct command queue
 
 	hr = device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&cmd_queue));
 	if (FAILED(hr)) {
@@ -100,28 +100,30 @@ void s_dxgicontext::create_device_and_swapchain() {
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {};
-	swapchain_desc.BufferCount = buffer_count; // Default buffer count
-	swapchain_desc.Width = process->window.width; // Set the width of the swapchain
-	swapchain_desc.Height = process->window.height; // Set the height of the swapchain
-	swapchain_desc.Format = dxgiformat; // Set the format of the swapchain
-	swapchain_desc.Stereo = FALSE; // No stereo rendering
-	swapchain_desc.SampleDesc.Count = sample_count; // No multisampling
-	swapchain_desc.SampleDesc.Quality = num_quality_levels; // No multisampling quality
-	swapchain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // Use the swapchain for rendering
-	swapchain_desc.Scaling = DXGI_SCALING_STRETCH; // Stretch the swapchain to fit the window
-	swapchain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // Allow mode switching
-	swapchain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED; // No alpha mode
-	swapchain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // Use flip discard for better performance
-	// Create the swapchain for m_hwnd
+	swapchain_desc.BufferCount = buffer_count; // default buffer count
+	swapchain_desc.Width = process->window.width; // set the width of the swapchain
+	swapchain_desc.Height = process->window.height; // set the height of the swapchain
+	swapchain_desc.Format = dxgiformat; // set the format of the swapchain
+	swapchain_desc.Stereo = FALSE; // no stereo rendering
+	swapchain_desc.SampleDesc.Count = sample_count; // no multisampling
+	swapchain_desc.SampleDesc.Quality = num_quality_levels; // no multisampling quality
+	swapchain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // use the swapchain for rendering
+	swapchain_desc.Scaling = DXGI_SCALING_STRETCH; // stretch the swapchain to fit the window
+	swapchain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING; // allow mode switching
+	swapchain_desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED; // no alpha mode
+	swapchain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // use flip discard for better performance
+	
+	// create the swapchain for m_hwnd
 	ComPtr<IDXGISwapChain1> swapchain1;
 	hr = dxgi_factory->CreateSwapChainForHwnd(
-		cmd_queue.Get(), // Command queue for the swapchain
-		process->window.handle, // Handle to the overlay window
-		&swapchain_desc, // Swapchain description
-		nullptr, // No additional parameters
-		nullptr, // No restrict to output
-		&swapchain1 // Output swapchain pointer
+		cmd_queue.Get(), // command queue for the swapchain
+		process->window.handle, // handle to the overlay window
+		&swapchain_desc, // swapchain description
+		nullptr, // no additional parameters
+		nullptr, // no restrict to output
+		&swapchain1 // output swapchain pointer
 	);
+
 	if (FAILED(hr)) {
 		std::string msg = "Failed to create swapchain, HRESULT: " + std::to_string(hr) + "\n";
 		OutputDebugStringA(msg.c_str());
@@ -157,7 +159,6 @@ void s_dxgicontext::create_rtv_heap() {
 		throw std::runtime_error(msg);
 	}
 
-	// Get the size of each descriptor in the RTV heap
 	rtv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 }
 
@@ -174,24 +175,22 @@ void s_dxgicontext::create_backbuffers() {
 			throw std::runtime_error(msg);
 		}
 		device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtv_handle);
-		rtv_handle.ptr += rtv_descriptor_size; // Move to the next descriptor handle
+		rtv_handle.ptr += rtv_descriptor_size; // move to the next descriptor handle
 	}
 }
 
 void s_dxgicontext::wait_for_gpu() {
-	frame_index = swapchain->GetCurrentBackBufferIndex();
-	frame_resource& fr = frame_resources[frame_index];
+	frame_resource& fr = get_current_frame_resource();
+
 	fr.signal(cmd_queue);
 	fr.wait_for_gpu();
 }
 
 void s_dxgicontext::create_resources() {
 
-	for (auto& frame : frame_resources)
+	for (frame_resource& frame : frame_resources)
 		frame.initialize(device, D3D12_COMMAND_LIST_TYPE_DIRECT, size_t(1024 * 1024));
 
-	// CRITICAL: Update projection matrix and viewport/scissor for the new window size
-	// even on the first frame after resize
 	const float fwidth = static_cast<float>(process->window.width);
 	const float fheight = static_cast<float>(process->window.height);
 
@@ -217,15 +216,15 @@ void s_dxgicontext::create_resources() {
 }
 
 void s_dxgicontext::release_resources() {
-	for (auto& fr : frame_resources) {
+	for (frame_resource& fr : frame_resources) {
 		fr.release();
 	}
 
-	// Release backbuffers
+	// release backbuffers ComPtr<ID3D12Resource>
 	for (auto& buffer : back_buffers) {
-		//srv->free_if_backbuffer(buffer.Get());
 		buffer.Reset();
 	}
+
 	back_buffers.clear();
 }
 
@@ -235,7 +234,7 @@ void s_dxgicontext::resize_backbuffers(UINT width, UINT height, DXGI_FORMAT form
 	}
 
 	try {
-		//call swapchain resize buffers
+		// call swapchain resize buffers
 		HRESULT hr = swapchain->ResizeBuffers(buffer_count, width, height, format, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		if (FAILED(hr)) {
 			std::string msg = "Failed to resize swapchain buffers, HRESULT: " + std::to_string(hr) + "\n";
@@ -258,14 +257,14 @@ void s_dxgicontext::create_pipeline() {
 
 	shaders->initialize(device);
 
-	// Build ImGui-exact root signature
+	// build compatibility root signature with 1 SRV for font texture, and 1 static sampler for point sampling
 	D3D12_DESCRIPTOR_RANGE1 srv_range{};
 	srv_range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srv_range.NumDescriptors = 1;
 	srv_range.BaseShaderRegister = 0;
 	srv_range.RegisterSpace = 0;
 	srv_range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-	srv_range.OffsetInDescriptorsFromTableStart = 0; // CRITICAL
+	srv_range.OffsetInDescriptorsFromTableStart = 0;
 
 	D3D12_STATIC_SAMPLER_DESC samp{};
 	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -279,7 +278,7 @@ void s_dxgicontext::create_pipeline() {
 	samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	try {
-		// use build_safe() to guarantee the ImGui-exact signature serialized with version 1.0
+		// use build_safe() for now
 		root_sig = c_rootsig_builder(device)
 			.build_safe();
 	}
@@ -306,7 +305,7 @@ void s_dxgicontext::create_pipeline() {
 		{ "TEXCOORD",   7, DXGI_FORMAT_R32G32B32A32_FLOAT,    1, 44, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
 	};
 
-	// Defensive RTV validation
+	// verify backbuffer format is valid before creating PSO
 	if (dxgiformat == DXGI_FORMAT_UNKNOWN) {
 		std::string msg = "Backbuffer format is unknown, cannot create PSO\n";
 		OutputDebugStringA(msg.c_str());
@@ -326,7 +325,7 @@ void s_dxgicontext::create_pipeline() {
 			.set_dsv_format(DXGI_FORMAT_UNKNOWN)
 			.set_num_render_targets(1)
 			.set_sample_desc({ sample_count, num_quality_levels })
-			.allow_empty_input_layout(true) // tolerate missing input layout in certain hooked environments
+			.allow_empty_input_layout(true) // tolerate missing input layout in certain environments
 			.build();
 	}
 	catch (const std::exception& ex) {
@@ -368,7 +367,7 @@ void s_dxgicontext::begin_frame() {
 
 	auto& cmd = fr.command_list;
 
-	// Bind SRV descriptor heap (font + backbuffer SRVs, etc.)
+	// bind SRV descriptor heap font + backbuffer SRVs
 	ID3D12DescriptorHeap* heaps[] = { fonts->get_font_srv_heap().Get()};
 	cmd->SetDescriptorHeaps(1, heaps);
 
@@ -407,6 +406,9 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 	quad_ibv.SizeInBytes = sizeof(quad_indices);
 	quad_ibv.Format = DXGI_FORMAT_R16_UINT;
 
+	cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	cmd->IASetIndexBuffer(&quad_ibv);
+
 	for (uint32_t i = 0; i < shapes.size(); i++) {
 
 		if (shapes[i].empty())
@@ -427,8 +429,6 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc = fonts->get_font_srv_gpu(i);
 		cmd->SetGraphicsRootDescriptorTable(1, gpu_desc);
-		cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		cmd->IASetIndexBuffer(&quad_ibv);
 
 		cmd->DrawIndexedInstanced(
 			6,                                  // indices per instance (quad)
@@ -438,17 +438,17 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 			0                                    // start instance location
 		);
 
-		shapes[i].clear(); // Clear shapes after rendering to free up memory for the next frame
+		shapes[i].clear(); // clear shapes after rendering to free up memory for the next frame
 	}
 
-	// Transition back to present
+	// transition back to present
 	D3D12_RESOURCE_BARRIER to_present = CD3DX12_RESOURCE_BARRIER::Transition(
 		get_back_buffer(frame_index).Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PRESENT
 	);
 
-	//set resource barrier for present transition
+	// set resource barrier for present transition
 	cmd->ResourceBarrier(1, &to_present);
 
 	HRESULT hr = cmd->Close();
@@ -456,7 +456,7 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 		char buf[256];
 		sprintf_s(buf, "Close FAILED: 0x%08X\n", hr);
 		OutputDebugStringA(buf);
-		return;  // DON'T ExecuteCommandLists on bad list
+		return;  // dON'T ExecuteCommandLists on bad list
 	}
 
 	// execute the command list
@@ -478,9 +478,8 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 				std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
 			}
 		}
+
 		fr.wait_for_gpu();
-		// In standalone mode, we can wait for the GPU to finish before starting the next frame
-		if (swapchain)
-			frame_index = swapchain->GetCurrentBackBufferIndex();
+		frame_index = swapchain->GetCurrentBackBufferIndex();
 	}
 }

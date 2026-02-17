@@ -14,14 +14,13 @@ namespace fgui {
 
     // font_handle is used in instance packing (high 16 bits). Make it explicit and sized.
     using font_handle = uint16_t;
-    static constexpr uint32_t k_max_fonts = 256; // tune as needed; must be <= 65535 if you pack into 16 bits
 
     struct font_glyph_info {
         float u0, v0, u1, v1; // UV rect in atlas
         float advance;        // in pixels (floating to allow sub-pixel placement)
         int offset_x;         // horizontal offset (pixels) from pen position to bitmap origin
         int offset_y;         // vertical offset (pixels) from baseline to bitmap origin
-        DWRITE_GLYPH_METRICS metrics; // Glyph metrics from DirectWrite
+        DWRITE_GLYPH_METRICS metrics; // glyph metrics from DirectWrite
     };
 
     struct font_key {
@@ -89,6 +88,8 @@ namespace fgui {
 
         // descriptor allocator index (also used as the handle value)
         uint32_t m_next_descriptor_index = 0;
+
+        font_handle m_max_fonts = 256;
     };
 
 } // namespace fgui

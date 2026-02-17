@@ -57,6 +57,7 @@ namespace fgui {
 		void draw_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
 
 		void draw_text(const std::string& text, vec2i pos, font_handle font, DirectX::XMFLOAT4 clr);
+		void draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr);
 
 		font_handle get_or_create_font(const std::wstring& family,
 			DWRITE_FONT_WEIGHT weight,

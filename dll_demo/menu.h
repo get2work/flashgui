@@ -30,12 +30,12 @@ struct key_bind {
 namespace menu {
 
 	inline std::vector<key_bind> keys = {
-		key_bind(VK_INSERT, TRUE, km_toggle), //menu_open
-		key_bind(VK_XBUTTON1, FALSE, km_hold), //lb_enable
-		key_bind(VK_XBUTTON2, FALSE, km_hold) //tb_enable
+		key_bind(VK_INSERT, TRUE, km_toggle),
+		key_bind(VK_XBUTTON1, FALSE, km_hold),
+		key_bind(VK_XBUTTON2, FALSE, km_hold)
 	};
 
-	//esp
+	// esp
 	inline bool esp_enable = true;
 	inline bool esp_health = true;
 	inline bool esp_box = true;
@@ -43,7 +43,7 @@ namespace menu {
 	inline bool esp_weapon = true;
 	inline bool esp_recoil = true;
 
-	//chams
+	// chams
 	inline bool cham_enable = true;
 	inline int cham_mat = 0;
 

@@ -21,10 +21,10 @@ static BOOL CALLBACK enum_callback(HWND hwnd, LPARAM lparam) {
 		GetClassNameA(hwnd, cls, 256);
 		OutputDebugStringA(("DLL Enum: PID=" + std::to_string(pid) + " Class=" + cls + "\n").c_str());
 
-		// Skip console
+		// skip console
 		if (strcmp(cls, "ConsoleWindowClass") == 0) return TRUE;
 
-		// Match your class OR title OR largest visible
+		// match class OR title
 		if (params->target_class[0] && strcmp(cls, params->target_class) == 0) {
 			params->found_hwnd = hwnd;
 			return FALSE;  // Stop
@@ -80,14 +80,8 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 			throw std::runtime_error("Failed to create window");
 		}
 
-        // Do not force layered style on the main D3D window. Layered windows
-        // can interact poorly with DXGI flip-model swapchains on Windows 10
-        // and cause visual artifacts (black bars) after resize. Leave the
-        // window as a normal top-level window so the swapchain covers the
-        // client area correctly.
-
-		ShowWindow(window.handle, SW_SHOW); // Show the window
-		UpdateWindow(window.handle); // Update the window to ensure it is drawn
+		ShowWindow(window.handle, SW_SHOW); // show the window
+		UpdateWindow(window.handle); // update the window to ensure it is drawn
 	}
 	else if (!in_hwnd) {
 		window.handle = find_process_window(pid, "FlashGUIWindowClass");
@@ -126,31 +120,31 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 		return 0;
 	}
 	case WM_KEYDOWN:
-		// Handle key down events if needed
+		// handle key down events if needed
 		return 0;
 	case WM_KEYUP:
-		// Handle key up events if needed
+		// ...
 		return 0;
 	case WM_CHAR:
-		// Handle character input if needed
+		// ...
 		return 0;
 	case WM_SETFOCUS:
-		// Handle focus events if needed
+		// ...
 		return 0;
 	case WM_KILLFOCUS:
-		// Handle focus loss events if needed
+		// handle focus loss events if needed
 		return 0;
 	case WM_LBUTTONDOWN:
-		// Handle left mouse button down events if needed
+		// handle left mouse button down events if needed
 		return 0;
 	case WM_RBUTTONDOWN:
-		// Handle right mouse button down events if needed
+		// handle right mouse button down events if needed
 		return 0;
 	case WM_MOUSEMOVE:
-		// Handle mouse move events if needed
+		// handle mouse move events if needed
 		return 0;
 	case WM_CLOSE:
-		// Handle close events if needed
+		// handle close events if needed
 		return 0;
 
 	default:

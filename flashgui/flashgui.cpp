@@ -22,29 +22,29 @@ namespace fgui {
 
 			if (!render) {
 				std::cerr << "[flashgui] Failed to create renderer instance" << std::endl;
-				return false; // Initialization failed
+				return false; // initialization failed
 			}
 
 			render->initialize(swapchain, cmd_queue);
 
 			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));	
 		}
-		return true; // Initialization successful
+		return true; // initialization successful
 	}
 
 	bool initialize(DWORD processID, HINSTANCE dll_module, HWND in_hwnd) {
 		try {
 			hk::hookinfo = hk::get_info(processID, dll_module, in_hwnd);
 			SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
-			return true; // Initialization successful
+			return true; // initialization successful
 		}
 		catch (const std::exception& ex) {
 			std::cerr << "[flashgui] Initialization failed: " << ex.what() << std::endl;
-			return false; // Initialization failed
+			return false; // initialization failed
 		}
 	}
 
-	// VMT indices for IDXGISwapChain3
+	// vmt function indices for IDXGISwapChain3
 	enum class idxgi_swapchain_vmt : UINT {
 		present = 8,
 		resize_buffers = 13
@@ -66,8 +66,8 @@ namespace fgui {
 		ComPtr<IDXGIAdapter1> adapter;
 
 		hr = dxgi_factory->EnumAdapterByGpuPreference(
-			0, // Adapter index
-			DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, // Prefer high-performance GPU
+			0, // adapter index
+			DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, // prefer high-performance GPU
 			IID_PPV_ARGS(&adapter)
 		);
 
@@ -84,7 +84,7 @@ namespace fgui {
 			D3D_FEATURE_LEVEL_11_0
 		};
 
-		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // Default feature level
+		D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_12_1; // default feature level
 		for (auto level : levels) {
 			hr = D3D12CreateDevice(adapter.Get(), level, IID_PPV_ARGS(&device));
 			if (SUCCEEDED(hr)) {
@@ -101,7 +101,7 @@ namespace fgui {
 
 		ComPtr<ID3D12CommandQueue> command_queue;
 
-		// Create the command queue
+		// create the command queue
 		D3D12_COMMAND_QUEUE_DESC queue_desc = {};
 		queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -219,7 +219,8 @@ namespace fgui {
 			render = std::make_unique<c_renderer>(feature_level, 1);
 		}
 		
-		return hookinfo; // Return the hook data containing the command queue offset and function pointers
-		//ComPtrs are automatically released when they go out of scope, so no need to manually release them.
+		return hookinfo; // return the hook data containing the command queue offset and function pointers
+		
+		// comPtrs are automatically released when they go out of scope, so no need to manually release them.
 	}
 } // namespace fgui

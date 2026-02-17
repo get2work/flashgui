@@ -174,9 +174,9 @@ namespace fgui {
 
             return root_signature;
         }
-
-        // Build the exact ImGui DX12 signature (compat: D3D_ROOT_SIGNATURE_VERSION_1)
-        // ImGui exact: 32BIT_CONSTANTS(16) at b0, SRV table t0 (1 descriptor), static sampler s0
+           
+        
+        // safe configuration
         ComPtr<ID3D12RootSignature> build_safe() {
             if (!m_device) {
                 throw std::runtime_error("Invalid D3D12 device");
@@ -226,7 +226,7 @@ namespace fgui {
             ComPtr<ID3DBlob> error;
             HRESULT hr = D3D12SerializeRootSignature(
                 &desc,
-                D3D_ROOT_SIGNATURE_VERSION_1,   // <- hard?code 1.0 here for now
+                D3D_ROOT_SIGNATURE_VERSION_1,
                 &sig,
                 &error
             );

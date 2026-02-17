@@ -39,7 +39,6 @@ void c_renderer::create_resources(bool create_heap_and_buffers) {
 	m_dx->create_resources();
 }
 
-// use m_last_frame_time to calculate delta time for fps calculation and animations if needed.
 int c_renderer::get_fps() const {
 	return m_fps;
 }
@@ -48,7 +47,7 @@ void c_renderer::wait_for_gpu() {
 	m_dx->wait_for_gpu();
 }
 
-// Called at the beginning of each frame. Prepares command list and render target.
+
 void c_renderer::begin_frame() {
 	auto now = std::chrono::steady_clock::now();
 
@@ -60,10 +59,11 @@ void c_renderer::begin_frame() {
 		m_last_fps_update = now;
 	}
 
+	// called at the beginning of each frame. Prepares command list and render target.
 	m_dx->begin_frame();
 }
 
-//TODO: optimize by multithreading upload and draw calls, and merging persistent instances into a single buffer updated only when instances change, while keeping immediate instances in a per-frame upload heap.
+//TODO: optimize by multithreading upload and draw calls, optimize draws as well
 void c_renderer::end_frame() {
 	if (process->needs_resize()) {
 		// Reset the resize flag
@@ -77,7 +77,7 @@ void c_renderer::end_frame() {
 }
 
 void c_renderer::post_present() {
-	// increment the frame index
+	// update the frame index after presenting, so we know which backbuffer to render to for the next frame
 	if (m_dx->swapchain)
 		m_dx->frame_index = m_dx->swapchain->GetCurrentBackBufferIndex();
 }
@@ -89,7 +89,7 @@ font_handle c_renderer::get_or_create_font(const std::wstring& family, DWRITE_FO
 			m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource());
 
 	if (!exists) {
-		// If the font was newly created, we need to add a new vector for its instances
+		// if the font was newly created, we need to add a new vector for its instances
 		if (handle >= im_instances.size()) {
 			im_instances.resize(handle + 1);
 		}
@@ -136,11 +136,11 @@ void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font,
 		return;
 
 
-	// Use float cursor for sub-pixel advances
+	// use float cursor for sub-pixel advances
 	vec2f cursor = pos;
 
-	// Atlas size used to compute glyph pixel extents from UVs.
-	// If you change atlas size generation, consider exposing atlas size via the fonts API.
+	// atlas size used to compute glyph pixel extents from UVs.
+	// if we change atlas size generation, consider exposing atlas size via the fonts API.
 	const int atlas_size = 512;
 
 	for (char c : text) {
@@ -156,7 +156,7 @@ void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font,
 		int glyph_w = static_cast<int>(std::lround(uv_w * atlas_size));
 		int glyph_h = static_cast<int>(std::lround(uv_h * atlas_size));
 
-		// Apply baseline offset for vertical alignment and horizontal offset for bitmap origin
+		// apply baseline offset for vertical alignment and horizontal offset for bitmap origin
 		vec2f glyph_pos = cursor;
 		glyph_pos.x += static_cast<float>(glyph.offset_x); // use glyph offset_x so bitmap aligns to pen
 		glyph_pos.y += glyph.offset_y;
@@ -170,7 +170,7 @@ void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font,
 			DirectX::XMFLOAT4(glyph.u0, glyph.v0, glyph.u1, glyph.v1)
 		));
 
-		// Advance pen by the glyph's float advance (preserves fractional advances and kerning)
+		// advance pen by the glyph's float advance (preserves fractional advances and kerning)
 		cursor.x += glyph.advance;
 	}
 }

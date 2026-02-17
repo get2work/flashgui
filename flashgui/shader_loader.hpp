@@ -28,11 +28,11 @@ namespace fgui {
 			shader_bytecode vs_bytecode = get_vs_bytecode();
 			shader_bytecode ps_bytecode = get_ps_bytecode();
 
-            // Load VS bytecode
+            // load VS bytecode
             throw_if_failed(D3DCreateBlob(vs_bytecode.size, &m_vs_blob));
             memcpy(m_vs_blob->GetBufferPointer(), vs_bytecode.data, vs_bytecode.size);
 
-            // Load PS bytecode  
+            // load PS bytecode  
             throw_if_failed(D3DCreateBlob(ps_bytecode.size, &m_ps_blob));
             memcpy(m_ps_blob->GetBufferPointer(), ps_bytecode.data, ps_bytecode.size);
 
@@ -62,11 +62,11 @@ namespace fgui {
 
         inline void throw_if_failed(HRESULT hr) {
             if (FAILED(hr)) {
-                // Set breakpoint here
+                // set breakpoint here
                 char buf[128];
                 sprintf_s(buf, "D3D12 Error 0x%08X", hr);
                 MessageBoxA(nullptr, buf, "D3D12 Error", MB_OK | MB_ICONERROR);
-                __debugbreak();  // Breakpoint
+                __debugbreak();  // breakpoint
             }
         }
 

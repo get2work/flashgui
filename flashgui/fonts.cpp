@@ -6,18 +6,22 @@ using Microsoft::WRL::ComPtr;
 
 void c_fonts::initialize(ComPtr<ID3D12Device> device) {
 
-    // DirectWrite factory + system font collection
+	// create a direct write factory and get the system font collection
     DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dwrite_factory);
-    if (!m_dwrite_factory) throw std::runtime_error("Failed to create DirectWrite factory");
+
+    if (!m_dwrite_factory) 
+        throw std::runtime_error("Failed to create DirectWrite factory");
+    
     m_dwrite_factory->GetSystemFontCollection(&m_system_fonts, FALSE);
 
     // create a shader-visible SRV heap to hold font atlas SRVs (one descriptor per font)
-    D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = static_cast<UINT>(k_max_fonts);
-    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
 
-    if (FAILED(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_font_srv_heap))))
+    heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heap_desc.NumDescriptors = static_cast<UINT>(m_max_fonts);
+    heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    if (FAILED(device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&m_font_srv_heap))))
         throw std::runtime_error("Failed to create font SRV heap");
 
     m_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -25,23 +29,27 @@ void c_fonts::initialize(ComPtr<ID3D12Device> device) {
 }
 
 std::vector<std::wstring> c_fonts::enumerate_families() const {
+    
     std::vector<std::wstring> out;
-    if (!m_system_fonts) return out;
+
+    if (!m_system_fonts) 
+        return out;
+
     UINT32 count = m_system_fonts->GetFontFamilyCount();
-    out.reserve(count);
-    for (UINT32 i = 0; i < count; ++i) {
+
+    out.reserve(count * 3);
+
+    for (UINT32 i = 0; i < count; i++) {
         ComPtr<IDWriteFontFamily> fam;
         if (SUCCEEDED(m_system_fonts->GetFontFamily(i, &fam))) {
             WCHAR name[256];
-            UINT32 nameLen = 0;
-            BOOL exists = FALSE;
 			IDWriteLocalizedStrings* names = nullptr;
             fam->GetFamilyNames(&names);
-            names->GetStringLength(0, &nameLen); // safe query; index 0 is one language
-            names->GetString(0, name, std::min(256u, nameLen+1));
-            out.emplace_back(name);
+            names->GetString(0, name, 256);
+            out.emplace_back(std::wstring(name));
         }
     }
+
     return out;
 }
 
@@ -49,14 +57,16 @@ font_handle c_fonts::allocate_handle_for_key(const font_key& key) {
     auto it = m_key_to_handle.find(key);
     if (it != m_key_to_handle.end()) return it->second;
 
-    if (m_next_descriptor_index >= k_max_fonts)
+    if (m_next_descriptor_index >= m_max_fonts)
         throw std::runtime_error("Exceeded font capacity");
 
     // allocate a descriptor index and use it as the font_handle
     font_handle h = static_cast<font_handle>(m_next_descriptor_index++);
+
     m_key_to_handle.emplace(key, h);
     m_atlases.emplace(h, font_atlas{});
     m_atlases[h].key = key;
+
     return h;
 }
 
@@ -88,7 +98,7 @@ font_handle c_fonts::get_or_create_font(const std::wstring& family,
 }
 
 /*
-PSEUDOCODE / PLAN (detailed):
+PSEUDOCODE / PLAN:
 - Problem: some glyphs visually overlap because the atlas packing uses the glyph's design advance (gm.advanceWidth * scale)
   which can be fractional and can be smaller than the glyph's raster width (overhangs / negative bearings), or rounding
   can cause adjacent glyphs to touch.
@@ -100,7 +110,7 @@ PSEUDOCODE / PLAN (detailed):
 */
 
 bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue, frame_resource& current_frame) {
-    // Find family -> font -> fontface
+    // find family -> font -> fontface
     UINT32 index = 0;
     BOOL exists = FALSE;
     if (FAILED(m_system_fonts->FindFamilyName(atlas.key.family.c_str(), &index, &exists)) || !exists) {
@@ -125,7 +135,7 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
     DWRITE_FONT_METRICS metrics;
     font_face->GetMetrics(&metrics);
 
-    // scale: here key.size_px is pixel height (choose convention)
+    // scale: here key.size_px is pixel height
     float scale = (float)atlas.key.size_px / (float)metrics.designUnitsPerEm;
     int ascender_px = int(metrics.ascent * scale);
     int baseline_offset = ascender_px;
@@ -192,8 +202,8 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
                     int py = (cursor_y + gy);
                     size_t idx = (py * atlas_w + px) * 4;
 
-                    // Store subpixel coverage into RGB and set alpha to 255 so shader can reconstruct properly.
-                    // This preserves ClearType detail. If you prefer grayscale, set rgb=255 and alpha=avg.
+                    // store subpixel coverage into RGB and set alpha to 255 so shader can reconstruct properly.
+                    // this preserves ClearType detail.
                     atlas_data[idx + 0] = r;     // subpixel R coverage
                     atlas_data[idx + 1] = g;     // subpixel G coverage
                     atlas_data[idx + 2] = b;     // subpixel B coverage
@@ -203,11 +213,12 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
         }
 
         font_glyph_info gi{};
-        // UV rect for the glyph in the atlas
+        // uv rect for the glyph in the atlas
         gi.u0 = float(cursor_x) / float(atlas_w);
         gi.v0 = float(cursor_y) / float(atlas_h);
         gi.u1 = float(cursor_x + w) / float(atlas_w);
         gi.v1 = float(cursor_y + h) / float(atlas_h);
+
         // use the floating design advance so render positions preserve sub-pixel spacing & kerning
         gi.advance = adv_f;
         // compute vertical offset (existing logic)
@@ -265,12 +276,13 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
 
     ID3D12CommandList* lists[] = { cmd.Get() };
     cmd_queue->ExecuteCommandLists(1, lists);
+
     current_frame.signal(cmd_queue);
     current_frame.wait_for_gpu();
 
-    // Use the font_handle value as the descriptor index (do NOT increment the descriptor counter here)
+    // use the font_handle value as the descriptor index (do NOT increment the descriptor counter here)
     uint32_t descriptor_index = static_cast<uint32_t>(fh);
-    if (descriptor_index >= k_max_fonts) throw std::runtime_error("Font handle exceeds heap capacity");
+    if (descriptor_index >= m_max_fonts) throw std::runtime_error("Font handle exceeds heap capacity");
 
     auto cpu = m_font_srv_heap->GetCPUDescriptorHandleForHeapStart();
     cpu.ptr += SIZE_T(descriptor_index) * m_descriptor_size;
