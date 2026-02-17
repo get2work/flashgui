@@ -20,8 +20,9 @@ namespace fgui {
 	using Microsoft::WRL::ComPtr;
 
 	enum class render_mode {
-		standalone, // standalone windowed mode
-		hooked // using swapchain and command queue
+		external_window, // standalone windowed mode
+		internal, // using swapchain and command queue
+		external_overlay
 	};
 
 	class c_renderer {
@@ -90,7 +91,7 @@ namespace fgui {
 
 		std::unique_ptr<s_dxgicontext> m_dx; // DXGI context containing factory, adapter, device, command queue, and swapchain
 
-		render_mode m_mode = render_mode::hooked; // Current rendering mode
+		render_mode m_mode = render_mode::external_window; // Current rendering mode
 
 	};
 }

@@ -13,7 +13,7 @@ LRESULT CALLBACK hk::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 }
 
 void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue, UINT sync_interval, UINT flags) {
-	m_mode = (swapchain && cmd_queue) ? render_mode::hooked : render_mode::standalone;
+	m_mode = render_mode::internal;
 
 	try {
 		m_dx->initialize(swapchain, cmd_queue, sync_interval, flags);
@@ -47,7 +47,6 @@ void c_renderer::wait_for_gpu() {
 	m_dx->wait_for_gpu();
 }
 
-
 void c_renderer::begin_frame() {
 	auto now = std::chrono::steady_clock::now();
 
@@ -72,14 +71,11 @@ void c_renderer::end_frame() {
 	}
 
 	m_dx->end_frame(im_instances);
-
-	//im_instances.clear();
 }
 
 void c_renderer::post_present() {
 	// update the frame index after presenting, so we know which backbuffer to render to for the next frame
-	if (m_dx->swapchain)
-		m_dx->frame_index = m_dx->swapchain->GetCurrentBackBufferIndex();
+	m_dx->frame_index = m_dx->swapchain->GetCurrentBackBufferIndex();
 }
 
 font_handle c_renderer::get_or_create_font(const std::wstring& family, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, int size_px) {
@@ -91,7 +87,7 @@ font_handle c_renderer::get_or_create_font(const std::wstring& family, DWRITE_FO
 	if (!exists) {
 		// if the font was newly created, we need to add a new vector for its instances
 		if (handle >= im_instances.size()) {
-			im_instances.resize(handle + 1);
+			im_instances.resize(size_t(handle) + 1ull);
 		}
 	}
 
@@ -174,6 +170,11 @@ void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font,
 		cursor.x += glyph.advance;
 	}
 }
+
+void c_renderer::draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr) {
+
+}
+
 /*
 void c_renderer::remove_shape(shape_instance* instance) {
 	auto it = std::find_if(instances.begin(), instances.end(),

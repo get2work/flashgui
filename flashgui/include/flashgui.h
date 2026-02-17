@@ -13,7 +13,9 @@ namespace fgui {
 	* @brief nullptr parameters used for standalone windowed mode, otherwise used to initialize the swapchain and command queue.
 	* @return true if initialization is successful, false otherwise.
 	*/
-	bool initialize(UINT buffer_count = 4, IDXGISwapChain3* swapchain = nullptr, ID3D12CommandQueue* cmd_queue = nullptr);
+	bool initialize(UINT buffer_count, IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_queue);
+
+	bool initialize(UINT buffer_count = 4, render_mode draw_mode = render_mode::external_window, HWND in_hwnd = nullptr);
 
 	/*
 	* @param processID - ID of the target process.
@@ -21,7 +23,7 @@ namespace fgui {
 	* @param in_hwnd - Handle to the window, can be nullptr.
 	* @return true if initialization is successful, false otherwise.
 	*/
-	bool initialize(DWORD processID, HINSTANCE module_handle, HWND in_hwnd = nullptr);
+	bool initialize(DWORD process_id, HINSTANCE module_handle, HWND in_hwnd = nullptr);
 
 	namespace hk {
 		using fn_present = HRESULT(WINAPI*)(IDXGISwapChain* p_this, UINT sync_interval, UINT flags);

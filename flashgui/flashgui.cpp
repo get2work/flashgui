@@ -32,6 +32,12 @@ namespace fgui {
 		return true; // initialization successful
 	}
 
+	bool initialize(UINT buffer_count, render_mode draw_mode, HWND in_hwnd) {
+
+		return true;
+	}
+
+
 	bool initialize(DWORD processID, HINSTANCE dll_module, HWND in_hwnd) {
 		try {
 			hk::hookinfo = hk::get_info(processID, dll_module, in_hwnd);

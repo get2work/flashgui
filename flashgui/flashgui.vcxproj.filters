@@ -58,13 +58,13 @@
     <ClInclude Include="fonts.h">
       <Filter>src\font</Filter>
     </ClInclude>
-    <ClInclude Include="vec2.h">
-      <Filter>src\types</Filter>
-    </ClInclude>
     <ClInclude Include="shader_loader.hpp">
       <Filter>src\shaders</Filter>
     </ClInclude>
     <ClInclude Include="include\flashgui.h" />
+    <ClInclude Include="vec2.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

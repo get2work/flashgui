@@ -409,6 +409,8 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 	cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmd->IASetIndexBuffer(&quad_ibv);
 
+	// TODO: push all bytes at once, drawindexed instances using instance count and base address
+	//
 	for (uint32_t i = 0; i < shapes.size(); i++) {
 
 		if (shapes[i].empty())
