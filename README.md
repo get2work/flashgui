@@ -4,7 +4,7 @@ Small DirectX12 overlay renderer + tiny GUI primitives.
 Includes:
 - renderer core (DirectX12): quad instancing, SDF shapes, text rendering via DirectWrite glyph atlases
 - standalone demo (`exe_demo`) and injector demo (`dll_demo`)
-- precompiled shaders (`quad_vs.cso` / `quad_ps.cso`) embedded as byte arrays and loaded at runtime â no runtime shader compiler required
+- precompiled shaders (`quad_vs.cso` / `quad_ps.cso`) embedded as byte arrays and loaded at runtime = no runtime shader compiler required
 - font system powered by DirectWrite: system fonts are enumerated automatically and glyph atlases are built on demand
 
 Prerequisites
@@ -19,7 +19,7 @@ Quick build (recommended)
    - git clone --recurse-submodules <repo_url>
 2. Install dependencies via vcpkg (manifest present):
    - Open Developer PowerShell for VS 2022 and from repo root:
-     - bootstrap vcpkg if you havenât already: `.\vcpkg\bootstrap-vcpkg.bat`
+     - bootstrap vcpkg if you haven't already: `.\vcpkg\bootstrap-vcpkg.bat`
      - Install triplet (manifest will be used): `.\vcpkg\vcpkg install --triplet x64-windows`
    - Or configure vcpkg integration for Visual Studio:
      - `.\vcpkg\vcpkg integrate install`
@@ -38,7 +38,7 @@ Font system
 
 Shader system
 - Vertex and pixel shaders are precompiled to DXGI shader object (`.cso`) format and checked into the repository (`flashgui/shaders/quad_vs.cso`, `flashgui/shaders/quad_ps.cso`).
-- `shader_loader.hpp` embeds the compiled bytecode as a `static const uint8_t[]` array and copies it into a `ID3DBlob` at initialisation â no DXC runtime dependency.
+- `shader_loader.hpp` embeds the compiled bytecode as a `static const uint8_t[]` array and copies it into a `ID3DBlob` at initialisation = no DXC runtime dependency.
 - To recompile shaders after editing the HLSL sources, compile `vertex.hlsl` / `pixel.hlsl` with DXC (or `fxc`) targeting `vs_6_0` / `ps_6_0` and replace the corresponding `.cso` files. Then regenerate the byte-array in `shader_loader.hpp`.
 
 Usage notes
@@ -47,7 +47,7 @@ Usage notes
   - Console output is enabled for quick diagnostics.
 - Hooked flow (dll_demo):
   - The DLL finds swapchain/command queue offsets and hooks Present/ResizeBuffers.
-  - Injection into other processes can trigger anti-cheat / security detections â only use on trusted targets.
+  - Injection into other processes can trigger anti-cheat / security detections, only use on trusted targets.
 
 Important implementation notes & troubleshooting
 - Shaders:
@@ -64,18 +64,18 @@ Important implementation notes & troubleshooting
 
 Debugging tips
 - Enable console output (demo apps already do) and read errors printed to stderr/stdout.
-- If text doesnât show:
+- If text doesn't show:
   - Verify the font SRV heap is set on the command list (`ID3D12GraphicsCommandList::SetDescriptorHeaps`) and the correct root descriptor table is bound before sampling.
   - Check PSO sampler bindings and that the static sampler is registered at the same shader register (s0).
   - Confirm the requested font family name is available via `get_font_families()`.
 - For device removed / presentation failures, check `GetDeviceRemovedReason()` and log the HRESULT.
 
 Project layout (high level)
-- `flashgui/` â renderer, precompiled shaders, helpers, and overlay UI
-- `flashgui/shaders/` â HLSL sources (`vertex.hlsl`, `pixel.hlsl`) and precompiled bytecode (`quad_vs.cso`, `quad_ps.cso`)
-- `exe_demo/` â standalone demo app
-- `dll_demo/` â injector-style demo (DLL main + entry thread)
-- `vcpkg.json` â dependency manifest for vcpkg
+- `flashgui/` renderer, precompiled shaders, helpers, and overlay UI
+- `flashgui/shaders/` HLSL sources (`vertex.hlsl`, `pixel.hlsl`) and precompiled bytecode (`quad_vs.cso`, `quad_ps.cso`)
+- `exe_demo/` standalone demo app
+- `dll_demo/` injector-style demo (DLL main + entry thread)
+- `vcpkg.json` dependency manifest for vcpkg
 
 Contributing
 - Feel free to open issues or PRs. Keep changes small and focused.
