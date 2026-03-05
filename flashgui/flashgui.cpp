@@ -34,6 +34,15 @@ namespace fgui {
 
 	bool initialize(UINT buffer_count, render_mode draw_mode, HWND in_hwnd) {
 
+		process = std::make_unique<c_process>(true, GetCurrentProcessId(), GetModuleHandleA(nullptr), in_hwnd);
+		render = std::make_unique<c_renderer>(D3D_FEATURE_LEVEL_12_1, buffer_count);
+
+		if (!render) {
+			std::cerr << "[flashgui] Failed to create renderer instance" << std::endl;
+			return false; // initialization failed
+		}
+		render->initialize();
+		SetWindowLongPtr(process->window.handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(render.get()));
 		return true;
 	}
 

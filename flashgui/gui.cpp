@@ -37,7 +37,6 @@ void c_window::update() {
 	pos.clamp_to_screen(process->window.get_size(), size);
 }
 
-
 void c_window::draw() {
 	//if (!menu::keys[kmenu_open].val)
 	//	return;
@@ -48,7 +47,6 @@ void c_window::draw() {
 	render->draw_quad_outline(pos + 5, size - 11, accent);
 
 	//title
-
 	render->draw_text(title[0], vec2i(pos.x + 50, pos.y + 28), 0, {1.f, 1.f, 1.f, 1.f});
 	render->draw_text(title[1], vec2i(pos.x + 50, pos.y + 48), 0, accent);
 

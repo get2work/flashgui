@@ -29,6 +29,8 @@ static void init_console() {
 	std::cout << "[console] Initialized" << std::endl;
 }
 
+static int magic_value = 129949214;
+
 int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	init_console();
@@ -55,6 +57,8 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	
 	MSG msg{}; bool running = true;
 
+	printf("Magic number address: %p\n", (void*)&magic_value);
+
 	while (running) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
 			if (msg.message == WM_QUIT) { running = false; break; }
@@ -77,6 +81,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->draw_text("Comic Sans Text", {200, 80}, comicsans16, {1.f, 1.f, 0.f, 1.f});
 
 		fgui::render->draw_text("Vladimir Script $", { 200, 140 }, impact32, { 1.f, 1.f, 1.f, 1.f });
+		fgui::render->draw_text("Magic value: " + std::to_string(magic_value), { 200, 180 }, verdanab24, { 1.f, 0.5f, 0.f, 1.f });
 		fgui::render->end_frame();
 	}
 

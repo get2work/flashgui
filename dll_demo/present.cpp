@@ -4,6 +4,8 @@
 
 fgui::font_handle verdanab_24;
 
+
+
 HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interval, UINT flags) {
 	static bool first_present = true;
 

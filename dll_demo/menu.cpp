@@ -4,57 +4,53 @@
 
 void menu::setup_menu() {
 
-	const auto& t_esp = window.start_tab("esp"); {
-		const auto& g_players = window.start_group(t_esp, "players"); {
-			window.add_checkbox(t_esp, g_players, "enable", &esp_enable);
-			window.add_checkbox(t_esp, g_players, "health", &esp_health);
-			window.add_checkbox(t_esp, g_players, "box", &esp_box);
-			window.add_checkbox(t_esp, g_players, "name", &esp_name);
-			window.add_checkbox(t_esp, g_players, "weapon", &esp_weapon);
-			window.add_checkbox(t_esp, g_players, "recoil crosshair", &esp_recoil);
-			window.add_checkbox(t_esp, g_players, "chams", &cham_enable);
-			window.add_combo(t_esp, g_players, "chams material", &cham_mat, { "default", "flat" });
-		} window.end_group(t_esp, g_players);
+	const auto& t_main = window.start_tab("main"); {
+		const auto& g_security = window.start_group(t_main, "security"); {
+			window.add_checkbox(t_main, g_security, "enable anti-palantir", &b_anti_palantir);
+			window.add_checkbox(t_main, g_security, "blackrock protection", &b_anti_blackrock);
+			window.add_checkbox(t_main, g_security, "mega vpn", &b_mega_vpn);
+			window.add_checkbox(t_main, g_security, "ddos shield", &b_ddos_shield);
+			window.add_combo(t_main, g_security, "shield type", &i_shield_type, { "default", "gemini" });
+		} window.end_group(t_main, g_security);
 	}
-	window.end_tab(t_esp);
+	window.end_tab(t_main);
 
 	const auto& t_misc = window.start_tab("misc"); {
 		const auto& g_misc = window.start_group(t_misc, "misc"); {
-			window.add_checkbox(t_misc, g_misc, "bhop", &misc_bhop);
+			window.add_checkbox(t_misc, g_misc, "anti-rat", &b_anti_rat);
 		} window.end_group(t_misc, g_misc);
 
 		const auto& g_config = window.start_group(t_misc, "config");
 	}
 	window.end_tab(t_misc);
 
-	const auto& t_legit = window.start_tab("legitbot"); {
-		const auto& gl_aim = window.start_group(t_legit, "aim"); {
-			window.add_checkbox(t_legit, gl_aim, "enable", &lb_enable);
-			window.add_keybind(t_legit, gl_aim, "key", &keys[klb_enable].key, false);
-			window.add_checkbox(t_legit, gl_aim, "smoke check", &lb_smokecheck);
-			window.add_checkbox(t_legit, gl_aim, "flash check", &lb_flashcheck);
-			window.add_combo(t_legit, gl_aim, "primary hitbox", &lb_hitbox, { "head", "chest", "stomach", "nearest" });
-			window.add_slider(t_legit, gl_aim, "fov", &lb_fov, 0.f, 30.f);
-			window.add_slider(t_legit, gl_aim, "smoothing", &lb_smoothing, 1.f, 20.f);
-			window.add_slider(t_legit, gl_aim, "deviation", &lb_deviation, 0.f, 1.f);
-			window.add_slider(t_legit, gl_aim, "rcs yaw", &lb_recoilyaw, 0.f, 1.25f);
-			window.add_slider(t_legit, gl_aim, "rcs pitch", &lb_recoilpitch, 0.f, 1.25f);
-			window.add_slider(t_legit, gl_aim, "rcs randomization", &lb_recoilrand, 0.f, 1.f);
+	const auto& t_hardware = window.start_tab("hardware"); {
+		const auto& g_overclock = window.start_group(t_hardware, "overclock"); {
+			window.add_checkbox(t_hardware, g_overclock, "gpu acceleration", &b_gpu_acceleration);
+			window.add_keybind(t_hardware, g_overclock, "120% key", &keys[k_120gpu].key, false);
+			window.add_checkbox(t_hardware, g_overclock, "anti-fry", &b_anti_fry);
+			window.add_checkbox(t_hardware, g_overclock, "vram overclock", &b_vram_overclock);
+			window.add_combo(t_hardware, g_overclock, "overclock mode", &i_overclock_mode, { "scared", "gaming", "idgaf", "till it blows" });
+			window.add_slider(t_hardware, g_overclock, "cpu voltage", &f_cpu_voltage, 0.f, 30.f);
+			window.add_slider(t_hardware, g_overclock, "cpu clock speed GHz", &f_cpu_clock_speed, 1.f, 20.f);
+			window.add_slider(t_hardware, g_overclock, "max cpu temp", &f_max_cpu_temp, 0.f, 100.f);
+			window.add_slider(t_hardware, g_overclock, "max gpu temp", &f_max_gpu_temp, 0.f, 100.f);
+			window.add_slider(t_hardware, g_overclock, "gpu clock speed GHz", &f_gpu_clock_speed, 0.f, 100.f);
+			window.add_slider(t_hardware, g_overclock, "ethernet speed GB/s", &f_ethernet_speed, 0.f, 2.f);
 		}
-		window.end_group(t_legit, gl_aim);
-		const auto& gl_trigger = window.start_group(t_legit, "trigger"); {
-			window.add_checkbox(t_legit, gl_trigger, "enable", &tb_enable);
-			window.add_keybind(t_legit, gl_trigger, "key", &keys[ktb_enable].key, false);
-			window.add_checkbox(t_legit, gl_trigger, "smoke check", &tb_smokecheck);
-			window.add_checkbox(t_legit, gl_trigger, "flash check", &tb_flashcheck);
-			window.add_slider(t_legit, gl_trigger, "delay", &tb_delay, 0.f, 1.f);
-			window.add_slider(t_legit, gl_trigger, "hitchance", &tb_hitchance, 0.f, 100.f);
+		window.end_group(t_hardware, g_overclock);
+		const auto& g_ai = window.start_group(t_hardware, "ai"); {
+			window.add_checkbox(t_hardware, g_ai, "ai companion", &b_ai_companion);
+			window.add_keybind(t_hardware, g_ai, "ai scan", &keys[k_ai_scan].key, false);
+			window.add_checkbox(t_hardware, g_ai, "quantum model", &b_quantum_model);
+			window.add_checkbox(t_hardware, g_ai, "starlink gpu", &b_starlink_gpu);
+			window.add_slider(t_hardware, g_ai, "%power", &f_power, 0.f, 1.f);
+			window.add_slider(t_hardware, g_ai, "vram GB", &f_vram, 0.f, 100.f);
 		}
-		window.end_group(t_legit, gl_trigger);
+		window.end_group(t_hardware, g_ai);
 	}
-	window.end_tab(t_legit);
-
-	window.set_active(t_esp);
+	window.end_tab(t_hardware);
+	window.set_active(t_main);
 }
 
 void menu::update() {
