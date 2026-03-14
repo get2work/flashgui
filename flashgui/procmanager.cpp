@@ -64,12 +64,17 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 			throw std::runtime_error("Failed to register window class");
 		}
 
+		// Adjust so the CLIENT area is exactly window.width x window.height
+		RECT rc = { 0, 0, static_cast<LONG>(window.width), static_cast<LONG>(window.height) };
+		AdjustWindowRectEx(&rc, WS_OVERLAPPEDWINDOW, FALSE, 0);
+
 		window.handle = CreateWindowExA(
 			0, // No extended styles
 			wc.lpszClassName, // Class name	
 			"DX12 Window", // Window title
 			WS_OVERLAPPEDWINDOW, // Window style
-			CW_USEDEFAULT, CW_USEDEFAULT, window.width, window.height, // Default position and size
+			CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,   // adjusted width (includes borders)
+			rc.bottom - rc.top,   // adjusted height (includes title bar + borders)
 			nullptr, // No parent window
 			nullptr, // No menu
 			wc.hInstance, // Use provided instance handle or current module handle

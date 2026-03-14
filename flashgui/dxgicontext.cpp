@@ -207,12 +207,61 @@ void s_dxgicontext::create_resources() {
 	};
 
 	transform_cb.projection_matrix = DirectX::XMMatrixOrthographicOffCenterLH(
-		0.0f, fwidth,   // left, right
-		fheight, 0.0f, // bottom, top
-		0.0f, 1.0f   // near, far
+		0.0f, fwidth,
+		fheight, 0.0f,
+		0.0f, 1.0f
 	);
 
 	frame_index = swapchain->GetCurrentBackBufferIndex();
+
+	// --- Create persistent quad VB/IB (uploaded once, reused every frame) ---
+	if (!quad_vb) {
+		auto upload_static = [&](const void* data, size_t size, ComPtr<ID3D12Resource>& out_resource) {
+			// Create default heap resource
+			CD3DX12_HEAP_PROPERTIES default_heap(D3D12_HEAP_TYPE_DEFAULT);
+			auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+			device->CreateCommittedResource(&default_heap, D3D12_HEAP_FLAG_NONE, &desc,
+				D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&out_resource));
+
+			// Create upload buffer
+			ComPtr<ID3D12Resource> upload;
+			CD3DX12_HEAP_PROPERTIES upload_heap(D3D12_HEAP_TYPE_UPLOAD);
+			device->CreateCommittedResource(&upload_heap, D3D12_HEAP_FLAG_NONE, &desc,
+				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&upload));
+
+			// Copy data to upload buffer
+			void* mapped = nullptr;
+			upload->Map(0, nullptr, &mapped);
+			memcpy(mapped, data, size);
+			upload->Unmap(0, nullptr);
+
+			// Record copy command
+			auto& fr = get_current_frame_resource();
+			fr.command_list->Reset(fr.command_allocator.Get(), nullptr);
+			fr.command_list->CopyBufferRegion(out_resource.Get(), 0, upload.Get(), 0, size);
+
+			auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(out_resource.Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+			fr.command_list->ResourceBarrier(1, &barrier);
+			fr.command_list->Close();
+
+			ID3D12CommandList* lists[] = { fr.command_list.Get() };
+			cmd_queue->ExecuteCommandLists(1, lists);
+			fr.signal(cmd_queue);
+			fr.wait_for_gpu();
+		};
+
+		upload_static(quad_vertices, sizeof(quad_vertices), quad_vb);
+		upload_static(quad_indices, sizeof(quad_indices), quad_ib);
+
+		quad_vbv.BufferLocation = quad_vb->GetGPUVirtualAddress();
+		quad_vbv.SizeInBytes = sizeof(quad_vertices);
+		quad_vbv.StrideInBytes = 8;
+
+		quad_ibv.BufferLocation = quad_ib->GetGPUVirtualAddress();
+		quad_ibv.SizeInBytes = sizeof(quad_indices);
+		quad_ibv.Format = DXGI_FORMAT_R16_UINT;
+	}
 }
 
 void s_dxgicontext::release_resources() {
@@ -390,67 +439,85 @@ void s_dxgicontext::begin_frame() {
 
 void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) {
 	frame_resource& fr = get_current_frame_resource();
-
 	auto& cmd = fr.command_list;
 
-	// *** DYNAMIC QUAD + INSTANCE ***
-	D3D12_GPU_VIRTUAL_ADDRESS quad_verts_va = fr.push_bytes(quad_vertices, sizeof(quad_vertices), 16);
-	D3D12_VERTEX_BUFFER_VIEW vbv_quad = {};
-	vbv_quad.BufferLocation = quad_verts_va;
-	vbv_quad.SizeInBytes = sizeof(quad_vertices);
-	vbv_quad.StrideInBytes = 8;  // float2
-
-	D3D12_GPU_VIRTUAL_ADDRESS quad_inds_va = fr.push_bytes(quad_indices, sizeof(quad_indices), 4);
-	D3D12_INDEX_BUFFER_VIEW quad_ibv = {};
-	quad_ibv.BufferLocation = quad_inds_va;
-	quad_ibv.SizeInBytes = sizeof(quad_indices);
-	quad_ibv.Format = DXGI_FORMAT_R16_UINT;
-
+	// Quad geometry is persistent
 	cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmd->IASetIndexBuffer(&quad_ibv);
 
-	// TODO: push all bytes at once, drawindexed instances using instance count and base address
-	//
-	for (uint32_t i = 0; i < shapes.size(); i++) {
+	// Count total instances across all buckets
+	size_t total_instances = 0;
+	for (const auto& bucket : shapes)
+		total_instances += bucket.size();
 
-		if (shapes[i].empty())
-			continue;
+	if (total_instances > 0) {
+		const size_t stride = sizeof(shape_instance);
+		const size_t total_bytes = total_instances * stride;
 
-		D3D12_GPU_VIRTUAL_ADDRESS inst_va = fr.push_bytes(
-			shapes[i].data(), 
-			shapes[i].size() * sizeof(shape_instance), 
-		16);
+		// Reserve one contiguous block in the upload heap
+		const size_t heap_offset = frame_resource::align_up(fr.upload_cursor, 16);
+		if (heap_offset + total_bytes > fr.upload_size)
+			throw std::runtime_error("Upload heap out of space for batched instances");
 
+		uint8_t* const dest = fr.upload_ptr + heap_offset;
+		const D3D12_GPU_VIRTUAL_ADDRESS batch_va = fr.upload_gpu_base + heap_offset;
+
+		// Copy each bucket contiguously and record draw commands
+		size_t copy_cursor = 0;
+
+		struct draw_cmd {
+			uint32_t bucket;
+			uint32_t start;
+			uint32_t count;
+		};
+
+		draw_cmd draw_stack[64];
+		uint32_t draw_count = 0;
+
+		for (uint32_t i = 0; i < static_cast<uint32_t>(shapes.size()); i++) {
+			if (shapes[i].empty())
+				continue;
+
+			const uint32_t count = static_cast<uint32_t>(shapes[i].size());
+			memcpy(dest + copy_cursor, shapes[i].data(), count * stride);
+
+			if (draw_count < _countof(draw_stack)) {
+				draw_stack[draw_count++] = { i, static_cast<uint32_t>(copy_cursor / stride), count };
+			}
+
+			copy_cursor += count * stride;
+			shapes[i].clear();
+		}
+
+		fr.upload_cursor = heap_offset + total_bytes;
+
+		// Bind the single instance VBV once
 		D3D12_VERTEX_BUFFER_VIEW vbv_inst = {};
-		vbv_inst.BufferLocation = inst_va;
-		vbv_inst.SizeInBytes = static_cast<UINT>(shapes[i].size() * sizeof(shape_instance));
-		vbv_inst.StrideInBytes = sizeof(shape_instance);
+		vbv_inst.BufferLocation = batch_va;
+		vbv_inst.SizeInBytes = static_cast<UINT>(total_bytes);
+		vbv_inst.StrideInBytes = static_cast<UINT>(stride);
 
-		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { vbv_quad, vbv_inst };
+		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { quad_vbv, vbv_inst };
 		cmd->IASetVertexBuffers(0, 2, vbvs);
 
-		D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc = fonts->get_font_srv_gpu(i);
-		cmd->SetGraphicsRootDescriptorTable(1, gpu_desc);
-
-		cmd->DrawIndexedInstanced(
-			6,                                  // indices per instance (quad)
-			static_cast<UINT>(shapes[i].size()), // instance count
-			0,                                   // start index location
-			0,                                   // base vertex location
-			0                                    // start instance location
-		);
-
-		shapes[i].clear(); // clear shapes after rendering to free up memory for the next frame
+		// Issue draws — skip descriptor table bind for bucket 0 if texture hasnt changed
+		D3D12_GPU_DESCRIPTOR_HANDLE last_srv{};
+		for (uint32_t d = 0; d < draw_count; d++) {
+			D3D12_GPU_DESCRIPTOR_HANDLE srv = fonts->get_font_srv_gpu(draw_stack[d].bucket);
+			if (srv.ptr != last_srv.ptr) {
+				cmd->SetGraphicsRootDescriptorTable(1, srv);
+				last_srv = srv;
+			}
+			cmd->DrawIndexedInstanced(6, draw_stack[d].count, 0, 0, draw_stack[d].start);
+		}
 	}
 
-	// transition back to present
+	//Transition and present
 	D3D12_RESOURCE_BARRIER to_present = CD3DX12_RESOURCE_BARRIER::Transition(
 		get_back_buffer(frame_index).Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PRESENT
 	);
-
-	// set resource barrier for present transition
 	cmd->ResourceBarrier(1, &to_present);
 
 	HRESULT hr = cmd->Close();
@@ -458,29 +525,22 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 		char buf[256];
 		sprintf_s(buf, "Close FAILED: 0x%08X\n", hr);
 		OutputDebugStringA(buf);
-		return;  // dON'T ExecuteCommandLists on bad list
+		return;
 	}
 
-	// execute the command list
 	ID3D12CommandList* cmd_lists[] = { cmd.Get() };
 	cmd_queue->ExecuteCommandLists(1, cmd_lists);
-
 	fr.signal(cmd_queue);
 
 	if (!hooked) {
-		// present the swapchain
-		HRESULT hr = swapchain->Present(sync_interval, swapchain_flags);
-
+		hr = swapchain->Present(sync_interval, swapchain_flags);
 		if (FAILED(hr)) {
 			std::cerr << "Failed to present swapchain HRESULT:" << hr << std::endl;
-
-			//directx device was removed
 			if (device && hr == DXGI_ERROR_DEVICE_REMOVED) {
 				HRESULT reason = device->GetDeviceRemovedReason();
 				std::cerr << "Device removed reason: " << std::hex << reason << std::endl;
 			}
 		}
-
 		fr.wait_for_gpu();
 		frame_index = swapchain->GetCurrentBackBufferIndex();
 	}

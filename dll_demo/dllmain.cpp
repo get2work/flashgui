@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "hooks.h"
-#include "menu.h"
 
 static void init_console() {
     // ignore parent console, create new one
@@ -56,7 +55,6 @@ static unsigned __stdcall entry_function(void* param) {
         goto exit;
     }
 
-    menu::setup_menu();
 
 	std::cout << "[flashgui] Process " << pid << " analyzed successfully." << std::endl;
 	std::cout << "[flashgui] Command queue offset: " <<    fgui::hk::hookinfo.command_queue_offset << std::endl;
@@ -74,9 +72,6 @@ static unsigned __stdcall entry_function(void* param) {
             std::cout << "[flashgui] END key pressed, exiting..." << std::endl;
             break;
         }
-
-        menu::update();
-
        // main loop for the DLL, can be used to update GUI or handle events
        // std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}

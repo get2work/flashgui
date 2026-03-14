@@ -48,7 +48,27 @@ float sd_line(float2 p, float2 start, float2 end, float thickness)
     return length(pa - ba * h) - thickness * 0.5;
 }
 
-float4 PSMain(PS_INPUT input) : SV_TARGET
+// Barycentric coordinates for point-in-triangle test
+float3 barycentric_coords(float2 p1, float2 p2, float2 p3, float2 p)
+{
+    float2 v0 = p2 - p1;
+    float2 v1 = p3 - p1;
+    float2 v2 = p - p1;
+
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    if (denom == 0.0) return float3(-1.0, -1.0, -1.0); // Degenerate triangle
+    float invDenom = 1.0 / denom;
+    float u = (d11 * d20 - d01 * d21) * invDenom;
+    float v = (d00 * d21 - d01 * d20) * invDenom;
+    return float3(u, v, 1.0 - u - v); // u and v are the barycentric coordinates
+}
+
+float4 main(PS_INPUT input) : SV_TARGET
 {
     // Prepare outputs: color (RGB) and alpha (A). We'll output premultiplied RGB.
     float3 out_rgb = input.inst_clr.rgb;
@@ -139,6 +159,35 @@ float4 PSMain(PS_INPUT input) : SV_TARGET
         out_a *= alpha;
 
         out_rgb = input.inst_clr.rgb * out_a;
+    }
+    else if (input.inst_type == 6)
+    {
+        // Filled Triangle
+        // p1 packed in inst_uv.xy, p2 in inst_uv.zw, p3 in inst_rot/inst_stroke
+        float2 p1 = input.inst_uv.xy;
+        float2 p2 = input.inst_uv.zw;
+        float2 p3 = float2(input.inst_rot, input.inst_stroke);
+
+        float2 pixel = input.sv_position.xy;
+        float3 bc = barycentric_coords(p1, p2, p3, pixel);
+
+        float edge_dist = min(bc.x, min(bc.y, bc.z));
+        float aa = fwidth(edge_dist);
+        float alpha = smoothstep(0.0, aa, edge_dist);
+
+        out_a *= alpha;
+        out_rgb = input.inst_clr.rgb * out_a;
+    }
+    else if (input.inst_type == 8)
+    {
+        // Image quad — sample texture with standard alpha blending
+        float2 uv = float2(lerp(input.inst_uv.x, input.inst_uv.z, input.quad_pos.x),
+                           lerp(input.inst_uv.y, input.inst_uv.w, input.quad_pos.y));
+        float4 texel = font_tex.Sample(font_samp, uv);
+
+        // Apply tint color and alpha
+        out_rgb = texel.rgb * input.inst_clr.rgb * texel.a * input.inst_clr.a;
+        out_a = texel.a * input.inst_clr.a;
     }
 
     // Return premultiplied color

@@ -31,7 +31,7 @@ struct VS_OUTPUT
     float4 inst_uv : TEXCOORD7; // UV rectangle for text / texture sampling
 };
 
-VS_OUTPUT VSMain(VS_INPUT input)
+VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
 

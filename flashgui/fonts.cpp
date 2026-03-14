@@ -311,7 +311,98 @@ const font_glyph_info* c_fonts::get_glyph_info(font_handle fh, uint32_t codepoin
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE c_fonts::get_font_srv_gpu(font_handle fh) const {
+    // Check font atlases first
     auto it = m_atlases.find(fh);
-    if (it == m_atlases.end()) return {};
-    return it->second.srv_gpu;
+    if (it != m_atlases.end())
+        return it->second.srv_gpu;
+
+    // Fall back to loaded images (they share the same descriptor heap)
+    auto img_it = m_images.find(fh);
+    if (img_it != m_images.end())
+        return img_it->second.srv_gpu;
+
+    return {};
+}
+
+image_handle c_fonts::load_image_rgba(const uint8_t* pixels, uint32_t width, uint32_t height,
+    ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue,
+    frame_resource& current_frame) {
+    
+    if (m_next_descriptor_index >= m_max_fonts)
+        throw std::runtime_error("Exceeded texture descriptor capacity");
+
+    image_handle h = static_cast<image_handle>(m_next_descriptor_index++);
+
+    // Create the GPU texture
+    D3D12_RESOURCE_DESC tex_desc = {};
+    tex_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    tex_desc.Width = width;
+    tex_desc.Height = height;
+    tex_desc.DepthOrArraySize = 1;
+    tex_desc.MipLevels = 1;
+    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+    image_entry entry{};
+    entry.width = width;
+    entry.height = height;
+
+    CD3DX12_HEAP_PROPERTIES default_heap(D3D12_HEAP_TYPE_DEFAULT);
+    if (FAILED(device->CreateCommittedResource(&default_heap, D3D12_HEAP_FLAG_NONE, &tex_desc,
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&entry.texture))))
+        throw std::runtime_error("Failed to create image texture");
+
+    // Upload via staging buffer
+    UINT64 upload_size = GetRequiredIntermediateSize(entry.texture.Get(), 0, 1);
+    ComPtr<ID3D12Resource> upload;
+    CD3DX12_HEAP_PROPERTIES upload_heap(D3D12_HEAP_TYPE_UPLOAD);
+    auto upload_desc = CD3DX12_RESOURCE_DESC::Buffer(upload_size);
+    if (FAILED(device->CreateCommittedResource(&upload_heap, D3D12_HEAP_FLAG_NONE, &upload_desc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&upload))))
+        throw std::runtime_error("Failed to create image upload buffer");
+
+    D3D12_SUBRESOURCE_DATA sub{};
+    sub.pData = pixels;
+    sub.RowPitch = width * 4;
+    sub.SlicePitch = sub.RowPitch * height;
+
+    auto& cmd = current_frame.command_list;
+    cmd->Reset(current_frame.command_allocator.Get(), nullptr);
+    UpdateSubresources(cmd.Get(), entry.texture.Get(), upload.Get(), 0, 0, 1, &sub);
+
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(entry.texture.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    cmd->ResourceBarrier(1, &barrier);
+    cmd->Close();
+
+    ID3D12CommandList* lists[] = { cmd.Get() };
+    cmd_queue->ExecuteCommandLists(1, lists);
+    current_frame.signal(cmd_queue);
+    current_frame.wait_for_gpu();
+
+    // Create SRV at the allocated descriptor index
+    auto cpu = m_font_srv_heap->GetCPUDescriptorHandleForHeapStart();
+    cpu.ptr += SIZE_T(h) * m_descriptor_size;
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+    srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Texture2D.MipLevels = 1;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    device->CreateShaderResourceView(entry.texture.Get(), &srv_desc, cpu);
+
+    auto gpu = m_font_srv_heap->GetGPUDescriptorHandleForHeapStart();
+    gpu.ptr += SIZE_T(h) * m_descriptor_size;
+    entry.srv_gpu = gpu;
+
+    m_images.emplace(h, std::move(entry));
+    return h;
+}
+
+const image_entry* c_fonts::get_image(image_handle h) const {
+    auto it = m_images.find(h);
+    if (it == m_images.end()) return nullptr;
+    return &it->second;
 }

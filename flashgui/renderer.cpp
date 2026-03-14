@@ -21,6 +21,11 @@ void c_renderer::initialize(IDXGISwapChain3* swapchain, ID3D12CommandQueue* cmd_
 		m_dx->fonts = std::make_unique<c_fonts>();
 
 		m_dx->fonts->initialize(m_dx->device);
+
+		// Ensure bucket 0 exists for non-textured shapes (quads, circles, lines, triangles)
+		if (im_instances.empty()) {
+			im_instances.resize(1);
+		}
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Exception thrown during renderer initialization!\n" << e.what() << std::endl;
@@ -78,8 +83,9 @@ void c_renderer::post_present() {
 	m_dx->frame_index = m_dx->swapchain->GetCurrentBackBufferIndex();
 }
 
-font_handle c_renderer::get_or_create_font(const std::wstring& family, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, int size_px) {
+font_handle c_renderer::get_font(const std::wstring& family, int size_px, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) {
 	bool exists = false;
+	
 	auto handle =
 		m_dx->fonts->get_or_create_font(family, weight, style, size_px, &exists,
 			m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource());
@@ -127,10 +133,16 @@ void c_renderer::draw_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 cl
 	im_instances.at(0).push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle_outline));
 }
 
+void c_renderer::draw_text(const std::string& text, vec2i pos, const wchar_t* font_family, int px_size, DirectX::XMFLOAT4 clr, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) {
+	if (process->needs_resize())
+		return;
+	font_handle font = get_font(font_family, px_size, weight, style);
+	draw_text(text, pos, font, clr);
+}
+
 void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font, DirectX::XMFLOAT4 clr) {
 	if (process->needs_resize())
 		return;
-
 
 	// use float cursor for sub-pixel advances
 	vec2f cursor = pos;
@@ -172,7 +184,59 @@ void c_renderer::draw_text(const std::string& text, vec2i pos, font_handle font,
 }
 
 void c_renderer::draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr) {
+	if (process->needs_resize())
+		return;
 
+	// Compute bounding box that encloses all three vertices
+	int min_x = std::min({ p1.x, p2.x, p3.x });
+	int min_y = std::min({ p1.y, p2.y, p3.y });
+	int max_x = std::max({ p1.x, p2.x, p3.x });
+	int max_y = std::max({ p1.y, p2.y, p3.y });
+
+	vec2i bbox_pos(min_x, min_y);
+	vec2i bbox_size(max_x - min_x, max_y - min_y);
+
+	// Pack the three screen-space vertices into uv (xy = p1, zw = p2) and inst_rot/inst_stroke for p3
+	// The pixel shader uses sv_position (screen space) for the barycentric test
+	im_instances.at(0).push_back(shape_instance(
+		bbox_pos, bbox_size, clr,
+		static_cast<float>(p3.x), static_cast<float>(p3.y),
+		shape_type::triangle,
+		DirectX::XMFLOAT4(
+			static_cast<float>(p1.x), static_cast<float>(p1.y),
+			static_cast<float>(p2.x), static_cast<float>(p2.y)
+		)
+	));
+}
+
+image_handle c_renderer::load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height) {
+	image_handle h = m_dx->fonts->load_image_rgba(
+		rgba_pixels, width, height,
+		m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource());
+
+	// Ensure the instance bucket exists for this handle
+	if (h >= im_instances.size()) {
+		im_instances.resize(size_t(h) + 1);
+	}
+
+	return h;
+}
+
+void c_renderer::draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 tint) {
+	if (process->needs_resize())
+		return;
+
+	if (img >= im_instances.size())
+		return;
+
+	// Full UV rect [0,0]->[1,1] covers the entire image texture
+	// Reuse shape_type 5 (text_quad) since the pixel shader already samples t0 with UV
+	im_instances.at(img).push_back(shape_instance(
+		pos, size, tint,
+		0.f, 1.f,
+		shape_type::image_quad,
+		DirectX::XMFLOAT4(0.f, 0.f, 1.f, 1.f)
+	));
 }
 
 /*

@@ -14,7 +14,6 @@
       <Filter>pch</Filter>
     </ClInclude>
     <ClInclude Include="hooks.h" />
-    <ClInclude Include="menu.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -22,6 +21,5 @@
     </ClCompile>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="present.cpp" />
-    <ClCompile Include="menu.cpp" />
   </ItemGroup>
 </Project>

@@ -1,10 +1,7 @@
 #include "pch.h"
 #include "hooks.h"
-#include "menu.h"
 
 fgui::font_handle verdanab_24;
-
-
 
 HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interval, UINT flags) {
 	static bool first_present = true;
@@ -14,12 +11,11 @@ HRESULT __fastcall hooks::present(IDXGISwapChain3* p_swapchain, UINT sync_interv
 	if (first_present) {
 		first_present = false;
 		fgui::render->initialize(p_swapchain, d3d12_command_queue, sync_interval, flags);
-		verdanab_24 = fgui::render->get_or_create_font(L"Verdana", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 12);
 	}
 
 	fgui::render->begin_frame();
 
-	menu::window.draw();
+	fgui::render->draw_text("Hello, FlashGUI!", { 50, 50 }, L"Verdana", 12, { 1.f, 1.f, 0.f, 1.f });
 
 	fgui::render->end_frame();
 

@@ -27,8 +27,6 @@ namespace fgui {
 		uint32_t shape_type; //0=quad, 1=quad outline, 2=circle, 3=circle outline, 4=line
 		DirectX::XMFLOAT4  uv;          // u0,v0,u1,v1 for text/other textured
 
-		bool visible = true; // Whether the shape should be rendered
-
 		shape_instance(vec2i _pos, vec2i _size, DirectX::XMFLOAT4 _clr, float _rotation = 0.f, float _stroke_width = 0.f, uint32_t _shape_type = 0, DirectX::XMFLOAT4 _uv = { 0.f, 0.f, 1.f, 1.f })
 			: pos(_pos),
 			size(_size),
@@ -138,5 +136,11 @@ namespace fgui {
 		s_dxgicontext(D3D_FEATURE_LEVEL feature_lvl, UINT buffer_count) : buffer_count(buffer_count), feature_level(feature_lvl) {
 			frame_resources.resize(buffer_count);
 		}
+
+		// Persistent quad geometry (uploaded once at init, never changes)
+		ComPtr<ID3D12Resource> quad_vb;
+		ComPtr<ID3D12Resource> quad_ib;
+		D3D12_VERTEX_BUFFER_VIEW quad_vbv{};
+		D3D12_INDEX_BUFFER_VIEW quad_ibv{};
 	};
 }

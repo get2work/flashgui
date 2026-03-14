@@ -54,6 +54,18 @@ namespace fgui {
         int atlas_h = 0;
     };
 
+    // Holds a loaded image texture and its SRV
+    struct image_entry {
+        ComPtr<ID3D12Resource> texture;
+        D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu{};
+        uint32_t width = 0;
+        uint32_t height = 0;
+    };
+
+    // Handle type for loaded images — same numeric space as font_handle
+    // (they share the same descriptor heap and instance bucket array)
+    using image_handle = uint16_t;
+
     class c_fonts
     {
     public:
@@ -70,8 +82,18 @@ namespace fgui {
                                       int size_px, bool* exists, ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue, frame_resource& current_frame);
 
         const font_glyph_info* get_glyph_info(font_handle fh, uint32_t codepoint) const;
+
         ComPtr<ID3D12DescriptorHeap> get_font_srv_heap() const { return m_font_srv_heap; }
+
         D3D12_GPU_DESCRIPTOR_HANDLE get_font_srv_gpu(font_handle fh) const;
+
+        // Image loading: returns a handle that occupies the same descriptor/bucket space as fonts
+        image_handle load_image_rgba(const uint8_t* pixels, uint32_t width, uint32_t height,
+            ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue,
+            frame_resource& current_frame);
+
+        // Look up a loaded image by handle
+        const image_entry* get_image(image_handle h) const;
 
     private:
         bool build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue, frame_resource& current_frame);
@@ -82,8 +104,11 @@ namespace fgui {
 
         std::unordered_map<font_key, font_handle, font_key_hash> m_key_to_handle;
         std::unordered_map<font_handle, font_atlas> m_atlases;
-
         ComPtr<ID3D12DescriptorHeap> m_font_srv_heap;
+
+        // Loaded images, keyed by the same descriptor index used as the handle
+        std::unordered_map<image_handle, image_entry> m_images;
+
         uint32_t m_descriptor_size = 0;
 
         // descriptor allocator index (also used as the handle value)

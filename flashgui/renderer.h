@@ -56,14 +56,18 @@ namespace fgui {
 		void draw_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width = 1.f);
 		void draw_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 0.f);
 		void draw_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle = 0.f, float outline_wdith = 1.f);
-
+		void draw_text(const std::string& text, vec2i pos, const wchar_t* font_family, int px_size, DirectX::XMFLOAT4 clr, DWRITE_FONT_WEIGHT = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE = DWRITE_FONT_STYLE_NORMAL);
 		void draw_text(const std::string& text, vec2i pos, font_handle font, DirectX::XMFLOAT4 clr);
 		void draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr);
+		void draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 tint = { 1.f, 1.f, 1.f, 1.f });
 
-		font_handle get_or_create_font(const std::wstring& family,
-			DWRITE_FONT_WEIGHT weight,
-			DWRITE_FONT_STYLE style,
-			int size_px);
+		// Load an RGBA image (4 bytes per pixel) and return a handle for drawing
+		image_handle load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height);
+
+		font_handle get_font(const std::wstring& family,
+			int size_px,
+			DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
+			DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL);
 
 		std::vector<std::wstring> get_font_families() const;
 
@@ -71,12 +75,15 @@ namespace fgui {
 	private:
 
 		enum shape_type : int {
-			quad = 0,
-			quad_outline = 1,
-			circle = 2,
-			circle_outline = 3,
-			line = 4,
-			text_quad = 5
+			quad				= 0,
+			quad_outline		= 1,
+			circle				= 2,
+			circle_outline		= 3,
+			line				= 4,
+			text_quad			= 5,
+			triangle			= 6,
+			triangle_outline	= 7,
+			image_quad			= 8
 		};
 
 		//immediate instances, cleared every frame, used for text and other shapes that need to be updated every frame
@@ -92,6 +99,5 @@ namespace fgui {
 		std::unique_ptr<s_dxgicontext> m_dx; // DXGI context containing factory, adapter, device, command queue, and swapchain
 
 		render_mode m_mode = render_mode::external_window; // Current rendering mode
-
 	};
 }

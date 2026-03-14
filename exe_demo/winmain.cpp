@@ -46,18 +46,20 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	}
 
 	// initialize fonts
-	auto verdanab24 = fgui::render->get_or_create_font(L"Verdana", DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, 30);
+	auto verdanab24 = fgui::render->get_font(L"Verdana", 30, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL);
 	printf("VerdanaBold24 font handle: %u\n", verdanab24);
 
-	auto comicsans16 = fgui::render->get_or_create_font(L"Comic Sans MS", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 16);
-	printf("ComicSansMS16 font handle: %u\n", comicsans16);
-
-	auto impact32 = fgui::render->get_or_create_font(L"Vladimir Script", DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, 30);
+	auto impact32 = fgui::render->get_font(L"Vladimir Script", 30, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL);
 	printf("Impact font handle: %u\n", impact32);
 	
 	MSG msg{}; bool running = true;
 
 	printf("Magic number address: %p\n", (void*)&magic_value);
+
+	// At init time — load a 64x64 red square as a test
+	std::vector<uint8_t> test_pixels(64 * 64 * 4, 255); // solid white RGBA
+	auto icon = fgui::render->load_image(test_pixels.data(), 64, 64);
+	printf("Test image handle: %u\n", icon);
 
 	while (running) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
@@ -78,10 +80,18 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 
 		// draw some test text with the current FPS in cyan color
 		fgui::render->draw_text("DX12 Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, verdanab24, {0.f, 1.f, 1.f, 1.f});
-		fgui::render->draw_text("Comic Sans Text", {200, 80}, comicsans16, {1.f, 1.f, 0.f, 1.f});
+
+		// fonts are cached, so this should be fast after the first frame
+		fgui::render->draw_text("Comic Sans Text", { 200, 80 }, L"Comic Sans MS", 24, {1.f, 1.f, 0.f, 1.f});
 
 		fgui::render->draw_text("Vladimir Script $", { 200, 140 }, impact32, { 1.f, 1.f, 1.f, 1.f });
 		fgui::render->draw_text("Magic value: " + std::to_string(magic_value), { 200, 180 }, verdanab24, { 1.f, 0.5f, 0.f, 1.f });
+		
+		fgui::render->draw_triangle({ 140, 150 }, { 190, 150 }, { 165, 198 }, { 0.7f, 0.7f, 1.f, 1.f });
+		
+		fgui::render->draw_image(icon, {50, 300}, {64, 64}); // full color
+		fgui::render->draw_image(icon, {150, 300}, {128, 128}, {1.f, 0.5f, 0.5f, 0.8f}); // tinted + scaled
+		
 		fgui::render->end_frame();
 	}
 
