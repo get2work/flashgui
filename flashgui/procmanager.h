@@ -36,6 +36,26 @@ namespace fgui {
 
 		} window;
 
+		// Input states
+		struct input_state {
+			vec2i mouse_pos;
+			vec2i mouse_delta;
+			bool mouse_down[3] = {};    // left, right, middle
+			bool mouse_clicked[3] = {}; // true for one frame on press
+			bool mouse_released[3] = {};// true for one frame on release
+			int scroll_delta = 0;
+
+			bool key_down[256] = {};
+			bool key_pressed[256] = {};  // true for one frame
+			bool key_released[256] = {}; // true for one frame
+
+			// Text input buffer (characters typed this frame)
+			std::wstring text_input;
+		} input;
+
+		// Call at the start of each frame to reset per-frame flags
+		void begin_input_frame();
+
 		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	private:
 

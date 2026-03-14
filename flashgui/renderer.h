@@ -61,6 +61,13 @@ namespace fgui {
 		void draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr);
 		void draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 tint = { 1.f, 1.f, 1.f, 1.f });
 
+		float measure_text_width(const std::string& text, font_handle font) const;
+		float measure_text_width(const std::string& text, const wchar_t* font_family, int px_size, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL) const;
+		
+		// Clip rect stack for scrollable panels
+		void push_clip_rect(vec2i pos, vec2i size);
+		void pop_clip_rect();
+
 		// Load an RGBA image (4 bytes per pixel) and return a handle for drawing
 		image_handle load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height);
 
@@ -90,7 +97,9 @@ namespace fgui {
 		//indexed by font handle
 		std::vector<std::vector<shape_instance>> im_instances;
 
-		vec2i m_cursor_pos; // Current cursor position	
+		vec2i m_cursor_pos; // Current cursor position
+
+		std::vector<D3D12_RECT> m_clip_stack;
 
 		uint32_t m_frame_count = 0; // Total frame count this second
 		int m_fps = 0; // FPS value

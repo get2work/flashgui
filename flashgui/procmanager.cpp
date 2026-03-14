@@ -102,6 +102,20 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 	}
 }
 
+void c_process::begin_input_frame() {
+	for (int i = 0; i < 3; i++) {
+		input.mouse_clicked[i] = false;
+		input.mouse_released[i] = false;
+	}
+	for (int i = 0; i < 256; i++) {
+		input.key_pressed[i] = false;
+		input.key_released[i] = false;
+	}
+	input.scroll_delta = 0;
+	input.mouse_delta = { 0, 0 };
+	input.text_input.clear();
+}
+
 LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	switch (msg) {
 	case WM_DESTROY:
@@ -124,32 +138,65 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 		}
 		return 0;
 	}
-	case WM_KEYDOWN:
-		// handle key down events if needed
+	case WM_MOUSEMOVE:
+	{
+		vec2i new_pos(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+		input.mouse_delta = new_pos - input.mouse_pos;
+		input.mouse_pos = new_pos;
 		return 0;
-	case WM_KEYUP:
-		// ...
-		return 0;
-	case WM_CHAR:
-		// ...
-		return 0;
-	case WM_SETFOCUS:
-		// ...
-		return 0;
-	case WM_KILLFOCUS:
-		// handle focus loss events if needed
-		return 0;
+	}
 	case WM_LBUTTONDOWN:
-		// handle left mouse button down events if needed
+		input.mouse_down[0] = true;
+		input.mouse_clicked[0] = true;
+		SetCapture(hwnd);
+		return 0;
+	case WM_LBUTTONUP:
+		input.mouse_down[0] = false;
+		input.mouse_released[0] = true;
+		ReleaseCapture();
 		return 0;
 	case WM_RBUTTONDOWN:
-		// handle right mouse button down events if needed
+		input.mouse_down[1] = true;
+		input.mouse_clicked[1] = true;
 		return 0;
-	case WM_MOUSEMOVE:
-		// handle mouse move events if needed
+	case WM_RBUTTONUP:
+		input.mouse_down[1] = false;
+		input.mouse_released[1] = true;
+		return 0;
+	case WM_MBUTTONDOWN:
+		input.mouse_down[2] = true;
+		input.mouse_clicked[2] = true;
+		return 0;
+	case WM_MBUTTONUP:
+		input.mouse_down[2] = false;
+		input.mouse_released[2] = true;
+		return 0;
+	case WM_MOUSEWHEEL:
+		input.scroll_delta += GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
+		return 0;
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+	{
+		uint8_t vk = static_cast<uint8_t>(wparam);
+		if (!input.key_down[vk])
+			input.key_pressed[vk] = true;
+		input.key_down[vk] = true;
+		return 0;
+	}
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+	{
+		uint8_t vk = static_cast<uint8_t>(wparam);
+		input.key_down[vk] = false;
+		input.key_released[vk] = true;
+		return 0;
+	}
+	case WM_CHAR:
+		if (wparam >= 32) // printable
+			input.text_input += static_cast<wchar_t>(wparam);
 		return 0;
 	case WM_CLOSE:
-		// handle close events if needed
+		DestroyWindow(hwnd);
 		return 0;
 
 	default:

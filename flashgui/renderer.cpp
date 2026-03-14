@@ -53,17 +53,19 @@ void c_renderer::wait_for_gpu() {
 }
 
 void c_renderer::begin_frame() {
+	// Reset per-frame input flags before processing
+	process->begin_input_frame();
+
 	auto now = std::chrono::steady_clock::now();
 
 	++m_frame_count;
 
 	if (now - m_last_fps_update >= std::chrono::seconds(1)) {
-		m_fps = static_cast<int>(m_frame_count); // frames rendered in the last second
+		m_fps = static_cast<int>(m_frame_count);
 		m_frame_count = 0;
 		m_last_fps_update = now;
 	}
 
-	// called at the beginning of each frame. Prepares command list and render target.
 	m_dx->begin_frame();
 }
 
@@ -98,6 +100,38 @@ font_handle c_renderer::get_font(const std::wstring& family, int size_px, DWRITE
 	}
 
 	return handle;
+}
+
+void c_renderer::push_clip_rect(vec2i pos, vec2i size) {
+	// Flush current instances before changing scissor
+	m_dx->end_frame(im_instances);
+
+	D3D12_RECT rect;
+	rect.left = static_cast<LONG>(pos.x);
+	rect.top = static_cast<LONG>(pos.y);
+	rect.right = static_cast<LONG>(pos.x + size.x);
+	rect.bottom = static_cast<LONG>(pos.y + size.y);
+
+	m_clip_stack.push_back(rect);
+
+	auto& cmd = m_dx->get_current_frame_resource().command_list;
+	cmd->RSSetScissorRects(1, &rect);
+}
+
+void c_renderer::pop_clip_rect() {
+	if (!m_clip_stack.empty())
+		m_clip_stack.pop_back();
+
+	// Flush before restoring
+	m_dx->end_frame(im_instances);
+
+	auto& cmd = m_dx->get_current_frame_resource().command_list;
+	if (m_clip_stack.empty()) {
+		cmd->RSSetScissorRects(1, &m_dx->scissor_rect);
+	}
+	else {
+		cmd->RSSetScissorRects(1, &m_clip_stack.back());
+	}
 }
 
 std::vector<std::wstring> c_renderer::get_font_families() const {
@@ -239,46 +273,16 @@ void c_renderer::draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XM
 	));
 }
 
-/*
-void c_renderer::remove_shape(shape_instance* instance) {
-	auto it = std::find_if(instances.begin(), instances.end(),
-		[instance](const shape_instance& inst) { return &inst == instance; });
-	if (it != instances.end()) {
-		instances.erase(it);
+float c_renderer::measure_text_width(const std::string& text, font_handle font) const {
+	float width = 0.f;
+	for (char c : text) {
+		const font_glyph_info* g = m_dx->fonts->get_glyph_info(font, c);
+		if (g) width += g->advance;
 	}
+	return width;
 }
 
-shape_instance* c_renderer::add_quad(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float outline_width, float rotation) {
-	instances.push_back(shape_instance(pos, size, clr, rotation, outline_width, shape_type::quad));
-		return &instances.back();
+float c_renderer::measure_text_width(const std::string& text, const wchar_t* font_family, int px_size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) const {
+	return measure_text_width(text, m_dx->fonts->get_or_create_font(font_family, weight, style, px_size, nullptr,
+		m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource()));
 }
-
-
-
-shape_instance* c_renderer::add_line(vec2i start, vec2i end, DirectX::XMFLOAT4 clr, float width) {
-	instances.push_back(shape_instance(start, end, clr, 0.f, width, shape_type::line));
-	return &instances.back();
-}
-
-
-
-shape_instance* c_renderer::add_quad_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float width, float rotation) {
-	instances.push_back(shape_instance(pos, size, clr, rotation, width, shape_type::quad_outline));
-	return &instances.back();
-}
-
-
-
-shape_instance* c_renderer::add_circle(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
-	instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle));
-	return &instances.back();
-}
-
-
-
-shape_instance* c_renderer::add_circle_outline(vec2i pos, vec2i size, DirectX::XMFLOAT4 clr, float angle, float outline_width) {
-	instances.push_back(shape_instance(pos, size, clr, angle, outline_width, shape_type::circle_outline));
-	return &instances.back();
-}
-
-*/
