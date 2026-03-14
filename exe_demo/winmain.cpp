@@ -49,7 +49,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	auto verdanab24 = fgui::render->get_font(L"Verdana", 30, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL);
 	printf("VerdanaBold24 font handle: %u\n", verdanab24);
 
-	auto impact32 = fgui::render->get_font(L"Vladimir Script", 30, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL);
+	auto impact32 = fgui::render->get_font(L"Impact", 32, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL);
 	printf("Impact font handle: %u\n", impact32);
 	
 	MSG msg{}; bool running = true;
@@ -82,11 +82,15 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		fgui::render->draw_text("DX12 Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, verdanab24, {0.f, 1.f, 1.f, 1.f});
 
 		// fonts are cached, so this should be fast after the first frame
-		fgui::render->draw_text("Comic Sans Text", { 200, 80 }, L"Comic Sans MS", 24, {1.f, 1.f, 0.f, 1.f});
+		fgui::render->draw_text("mouse pos: " + std::to_string(fgui::process->input.mouse_pos.x) + ", " + std::to_string(fgui::process->input.mouse_pos.y), {200, 80}, L"Comic Sans MS", 24, {1.f, 1.f, 0.f, 1.f});
 
-		fgui::render->draw_text("Vladimir Script $", { 200, 140 }, impact32, { 1.f, 1.f, 1.f, 1.f });
+		fgui::render->draw_text("lmb: " + std::to_string(fgui::process->input.mouse_down[0]) +
+		" rmb: " + std::to_string(fgui::process->input.mouse_down[1]) +
+			" mmb: " + std::to_string(fgui::process->input.mouse_down[2]) +
+			" bkmb: " + std::to_string(fgui::process->input.mouse_down[3]) +
+			" fwmb: " + std::to_string(fgui::process->input.mouse_down[4]), {200, 140}, impact32, {1.f, 1.f, 1.f, 1.f});
 		fgui::render->draw_text("Magic value: " + std::to_string(magic_value), { 200, 180 }, verdanab24, { 1.f, 0.5f, 0.f, 1.f });
-		
+		fgui::render->draw_text("Mouse wheel: " + std::to_string(fgui::process->input.scroll_delta), { 200, 220 }, impact32, { 1.f, 1.f, 1.f, 1.f });
 		fgui::render->draw_triangle({ 140, 150 }, { 190, 150 }, { 165, 198 }, { 0.7f, 0.7f, 1.f, 1.f });
 		
 		fgui::render->draw_image(icon, {50, 300}, {64, 64}); // full color

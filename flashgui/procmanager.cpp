@@ -171,6 +171,30 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 		input.mouse_down[2] = false;
 		input.mouse_released[2] = true;
 		return 0;
+	case WM_XBUTTONDOWN: {
+		int xbuttondown = GET_XBUTTON_WPARAM(wparam);
+		if (xbuttondown == XBUTTON1) {
+			input.mouse_down[3] = true;
+			input.mouse_clicked[3] = true;
+		}
+		else if (xbuttondown == XBUTTON2) {
+			input.mouse_down[4] = true;
+			input.mouse_clicked[4] = true;
+		}
+		return 0;
+	}
+	case WM_XBUTTONUP: {
+		int xbuttonup = GET_XBUTTON_WPARAM(wparam);
+		if (xbuttonup == XBUTTON1) {
+			input.mouse_down[3] = false;
+			input.mouse_released[3] = true;
+		}
+		else if (xbuttonup == XBUTTON2) {
+			input.mouse_down[4] = false;
+			input.mouse_released[4] = true;
+		}
+		return 0;
+	}
 	case WM_MOUSEWHEEL:
 		input.scroll_delta += GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
 		return 0;

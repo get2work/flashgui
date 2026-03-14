@@ -40,9 +40,9 @@ namespace fgui {
 		struct input_state {
 			vec2i mouse_pos;
 			vec2i mouse_delta;
-			bool mouse_down[3] = {};    // left, right, middle
-			bool mouse_clicked[3] = {}; // true for one frame on press
-			bool mouse_released[3] = {};// true for one frame on release
+			bool mouse_down[5] = {};    // left, right, middle, backbutton, forwardbutton
+			bool mouse_clicked[5] = {}; // true for one frame on press
+			bool mouse_released[5] = {};// true for one frame on release
 			int scroll_delta = 0;
 
 			bool key_down[256] = {};

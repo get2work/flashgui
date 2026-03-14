@@ -54,7 +54,7 @@ void c_renderer::wait_for_gpu() {
 
 void c_renderer::begin_frame() {
 	// Reset per-frame input flags before processing
-	process->begin_input_frame();
+	//process->begin_input_frame();
 
 	auto now = std::chrono::steady_clock::now();
 
