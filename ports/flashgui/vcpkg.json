@@ -1,0 +1,20 @@
+{
+  "name": "flashgui",
+  "version-string": "1.0.0",
+  "description": "Direct3D 12 immediate mode GUI rendering library",
+  "homepage": "https://github.com/get2work/flashgui",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "directx-headers",
+    "directxtk12"
+  ],
+  "supports": "windows & !uwp"
+}
