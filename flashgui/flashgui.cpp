@@ -46,7 +46,6 @@ namespace fgui {
 		return true;
 	}
 
-
 	bool initialize(DWORD processID, HINSTANCE dll_module, HWND in_hwnd) {
 		try {
 			hk::hookinfo = hk::get_info(processID, dll_module, in_hwnd);

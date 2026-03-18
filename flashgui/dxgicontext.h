@@ -53,6 +53,13 @@ namespace fgui {
 		0, 2, 3  // second triangle
 	};
 
+
+	struct draw_cmd {
+		uint32_t bucket;
+		uint32_t start;
+		uint32_t count;
+	};
+
 	struct s_dxgicontext {
 		// Core DXGI components
 		ComPtr<IDXGIFactory7> dxgi_factory;
@@ -86,6 +93,7 @@ namespace fgui {
 		std::vector<ComPtr<ID3D12Resource>> back_buffers; // Vector of backbuffers
 		uint32_t buffer_count = 4; // default buffer count for swapchain
 
+		std::vector<draw_cmd> draw_stack;
 
 		DXGI_FORMAT dxgiformat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		UINT sample_count = 1; // desired multi-sampling level (e.g., 2, 4, 8)

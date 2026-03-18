@@ -5,6 +5,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 #include <wrl/client.h>
+#include <chrono>
 #include "vec2.h"
 
 namespace fgui {
@@ -41,8 +42,11 @@ namespace fgui {
 			vec2i mouse_pos;
 			vec2i mouse_delta;
 			bool mouse_down[5] = {};    // left, right, middle, backbutton, forwardbutton
-			bool mouse_clicked[5] = {}; // true for one frame on press
-			bool mouse_released[5] = {};// true for one frame on release
+
+			// time of click, used for long press detection
+			std::chrono::steady_clock::time_point mouse_down_time[5] = {};
+
+			bool mouse_clicked[5] = {}; // true if click detected (pressed and released within long_press_threshold)
 			int scroll_delta = 0;
 
 			bool key_down[256] = {};
@@ -51,10 +55,12 @@ namespace fgui {
 
 			// Text input buffer (characters typed this frame)
 			std::wstring text_input;
+
+			std::chrono::milliseconds long_press_threshold = std::chrono::milliseconds(500);
 		} input;
 
-		// Call at the start of each frame to reset per-frame flags
-		void begin_input_frame();
+		// Call at the end of each frame to reset per-frame flags
+		void end_input_frame();
 
 		LRESULT window_proc(HWND h_wnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	private:
