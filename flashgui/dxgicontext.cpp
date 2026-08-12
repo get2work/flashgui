@@ -414,6 +414,8 @@ void s_dxgicontext::begin_frame() {
 	fr.reset_upload_cursor();
 	fr.reset(pso_triangle);
 
+	draw_stack.clear();
+
 	auto& cmd = fr.command_list;
 
 	// bind SRV descriptor heap font + backbuffer SRVs
@@ -465,15 +467,6 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 		// Copy each bucket contiguously and record draw commands
 		size_t copy_cursor = 0;
 
-		struct draw_cmd {
-			uint32_t bucket;
-			uint32_t start;
-			uint32_t count;
-		};
-
-		draw_cmd draw_stack[64];
-		uint32_t draw_count = 0;
-
 		for (uint32_t i = 0; i < static_cast<uint32_t>(shapes.size()); i++) {
 			if (shapes[i].empty())
 				continue;
@@ -481,10 +474,7 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 			const uint32_t count = static_cast<uint32_t>(shapes[i].size());
 			memcpy(dest + copy_cursor, shapes[i].data(), count * stride);
 
-			if (draw_count < _countof(draw_stack)) {
-				draw_stack[draw_count++] = { i, static_cast<uint32_t>(copy_cursor / stride), count };
-			}
-
+			draw_stack.push_back({ i, static_cast<uint32_t>(copy_cursor / stride), count });
 			copy_cursor += count * stride;
 			shapes[i].clear();
 		}
@@ -502,12 +492,14 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 
 		// Issue draws — skip descriptor table bind for bucket 0 if texture hasnt changed
 		D3D12_GPU_DESCRIPTOR_HANDLE last_srv{};
-		for (uint32_t d = 0; d < draw_count; d++) {
+		for (uint32_t d = 0; d < draw_stack.size(); d++) {
 			D3D12_GPU_DESCRIPTOR_HANDLE srv = fonts->get_font_srv_gpu(draw_stack[d].bucket);
+			
 			if (srv.ptr != last_srv.ptr) {
 				cmd->SetGraphicsRootDescriptorTable(1, srv);
 				last_srv = srv;
 			}
+
 			cmd->DrawIndexedInstanced(6, draw_stack[d].count, 0, 0, draw_stack[d].start);
 		}
 	}

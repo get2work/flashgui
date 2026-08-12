@@ -102,17 +102,16 @@ c_process::c_process(bool create_window, DWORD pid, HINSTANCE module_handle, HWN
 	}
 }
 
-void c_process::begin_input_frame() {
-	for (int i = 0; i < 3; i++) {
+void c_process::end_input_frame() {
+	for (int i = 0; i < 5; i++) {
 		input.mouse_clicked[i] = false;
-		input.mouse_released[i] = false;
 	}
+
 	for (int i = 0; i < 256; i++) {
 		input.key_pressed[i] = false;
 		input.key_released[i] = false;
 	}
-	input.scroll_delta = 0;
-	input.mouse_delta = { 0, 0 };
+
 	input.text_input.clear();
 }
 
@@ -147,39 +146,55 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 	}
 	case WM_LBUTTONDOWN:
 		input.mouse_down[0] = true;
-		input.mouse_clicked[0] = true;
+		input.mouse_down_time[0] = std::chrono::steady_clock::now();
 		SetCapture(hwnd);
 		return 0;
 	case WM_LBUTTONUP:
 		input.mouse_down[0] = false;
-		input.mouse_released[0] = true;
+
+		if (std::chrono::steady_clock::now() - input.mouse_down_time[0] < input.long_press_threshold) {
+			input.mouse_clicked[0] = true;
+		}
+
 		ReleaseCapture();
 		return 0;
 	case WM_RBUTTONDOWN:
 		input.mouse_down[1] = true;
-		input.mouse_clicked[1] = true;
+		input.mouse_down_time[1] = std::chrono::steady_clock::now();
+		SetCapture(hwnd);
 		return 0;
 	case WM_RBUTTONUP:
 		input.mouse_down[1] = false;
-		input.mouse_released[1] = true;
+
+		if (std::chrono::steady_clock::now() - input.mouse_down_time[1] < input.long_press_threshold) {
+			input.mouse_clicked[1] = true;
+		}
+
+		ReleaseCapture();
 		return 0;
 	case WM_MBUTTONDOWN:
 		input.mouse_down[2] = true;
-		input.mouse_clicked[2] = true;
+		input.mouse_down_time[2] = std::chrono::steady_clock::now();
+		SetCapture(hwnd);
 		return 0;
 	case WM_MBUTTONUP:
 		input.mouse_down[2] = false;
-		input.mouse_released[2] = true;
+		if (std::chrono::steady_clock::now() - input.mouse_down_time[2] < input.long_press_threshold) {
+			input.mouse_clicked[2] = true;
+		}
+		ReleaseCapture();
 		return 0;
 	case WM_XBUTTONDOWN: {
 		int xbuttondown = GET_XBUTTON_WPARAM(wparam);
 		if (xbuttondown == XBUTTON1) {
 			input.mouse_down[3] = true;
-			input.mouse_clicked[3] = true;
+			input.mouse_down_time[3] = std::chrono::steady_clock::now();
+			SetCapture(hwnd);
 		}
 		else if (xbuttondown == XBUTTON2) {
 			input.mouse_down[4] = true;
-			input.mouse_clicked[4] = true;
+			input.mouse_down_time[4] = std::chrono::steady_clock::now();
+			SetCapture(hwnd);
 		}
 		return 0;
 	}
@@ -187,11 +202,15 @@ LRESULT c_process::window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 		int xbuttonup = GET_XBUTTON_WPARAM(wparam);
 		if (xbuttonup == XBUTTON1) {
 			input.mouse_down[3] = false;
-			input.mouse_released[3] = true;
+			if (std::chrono::steady_clock::now() - input.mouse_down_time[3] < input.long_press_threshold) {
+				input.mouse_clicked[3] = true;
+			}
 		}
 		else if (xbuttonup == XBUTTON2) {
 			input.mouse_down[4] = false;
-			input.mouse_released[4] = true;
+			if (std::chrono::steady_clock::now() - input.mouse_down_time[4] < input.long_press_threshold) {
+				input.mouse_clicked[4] = true;
+			}
 		}
 		return 0;
 	}

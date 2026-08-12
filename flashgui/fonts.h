@@ -18,8 +18,8 @@ namespace fgui {
     struct font_glyph_info {
         float u0, v0, u1, v1; // UV rect in atlas
         float advance;        // in pixels (floating to allow sub-pixel placement)
-        int offset_x;         // horizontal offset (pixels) from pen position to bitmap origin
-        int offset_y;         // vertical offset (pixels) from baseline to bitmap origin
+        float offset_x;         // horizontal offset (pixels) from pen position to bitmap origin
+        float offset_y;         // vertical offset (pixels) from baseline to bitmap origin
         DWRITE_GLYPH_METRICS metrics; // glyph metrics from DirectWrite
     };
 

@@ -2,6 +2,9 @@
 #include "renderer.h"
 #include "include/flashgui.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "images/stb_image.h"
+
 using namespace fgui;
 
 LRESULT CALLBACK hk::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -78,6 +81,7 @@ void c_renderer::end_frame() {
 	}
 
 	m_dx->end_frame(im_instances);
+	process->end_input_frame();
 }
 
 void c_renderer::post_present() {
@@ -106,11 +110,11 @@ void c_renderer::push_clip_rect(vec2i pos, vec2i size) {
 	// Flush current instances before changing scissor
 	m_dx->end_frame(im_instances);
 
-	D3D12_RECT rect;
-	rect.left = static_cast<LONG>(pos.x);
-	rect.top = static_cast<LONG>(pos.y);
-	rect.right = static_cast<LONG>(pos.x + size.x);
-	rect.bottom = static_cast<LONG>(pos.y + size.y);
+	D3D12_RECT rect{};
+	rect.left = static_cast<long>(pos.x);
+	rect.top = static_cast<long>(pos.y);
+	rect.right = static_cast<long>(pos.x + size.x);
+	rect.bottom = static_cast<long>(pos.y + size.y);
 
 	m_clip_stack.push_back(rect);
 
@@ -285,4 +289,20 @@ float c_renderer::measure_text_width(const std::string& text, font_handle font) 
 float c_renderer::measure_text_width(const std::string& text, const wchar_t* font_family, int px_size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) const {
 	return measure_text_width(text, m_dx->fonts->get_or_create_font(font_family, weight, style, px_size, nullptr,
 		m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource()));
+}
+
+image_handle c_renderer::load_image(const std::string& path, int desired_channels)
+{
+	int w, h, ch;
+	uint8_t* data = stbi_load(path.c_str(), &w, &h, &ch, desired_channels);
+	
+	if (!data) {
+		throw std::runtime_error("failed to load image: " + path);
+	}
+
+	image_handle handle = load_image(data, static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+
+	stbi_image_free(data);
+
+	return handle;
 }

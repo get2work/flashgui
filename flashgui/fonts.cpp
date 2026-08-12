@@ -37,7 +37,7 @@ std::vector<std::wstring> c_fonts::enumerate_families() const {
 
     UINT32 count = m_system_fonts->GetFontFamilyCount();
 
-    out.reserve(count * 3);
+    out.reserve(size_t(count * 3));
 
     for (UINT32 i = 0; i < count; i++) {
         ComPtr<IDWriteFontFamily> fam;
@@ -126,8 +126,8 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
     font->CreateFontFace(&font_face);
 
     // atlas params (simple, same packing approach you used)
-    const int atlas_w = 512;
-    const int atlas_h = 512;
+    const int& atlas_w = 512;
+    const int& atlas_h = 512;
     atlas.atlas_w = atlas_w;
     atlas.atlas_h = atlas_h;
     std::vector<uint8_t> atlas_data(atlas_w * atlas_h * 4, 0);
@@ -143,7 +143,7 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
     int cursor_x = 0, cursor_y = 0, line_h = 0;
 
     // small packing padding to avoid touching neighbors when sampling
-    const int pack_pad = 1;
+    const int& pack_pad = 1;
 
     // build glyphs for basic ASCII range (you can extend to glyph ranges you need)
     for (uint32_t cp = 0; cp < 127; ++cp) {
@@ -195,12 +195,12 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
                 if (FAILED(analysis->CreateAlphaTexture(DWRITE_TEXTURE_CLEARTYPE_3x1, &row_bounds, rowbuf.data(), bufsize)))
                     continue;
                 for (int gx = 0; gx < w; ++gx) {
-                    BYTE r = rowbuf[gx * 3 + 0];
-                    BYTE g = rowbuf[gx * 3 + 1];
-                    BYTE b = rowbuf[gx * 3 + 2];
+                    BYTE r = rowbuf.at(size_t(gx * 3 + 0));
+                    BYTE g = rowbuf.at(size_t(gx * 3 + 1));
+                    BYTE b = rowbuf.at(size_t(gx * 3 + 2));
                     int px = (cursor_x + gx);
                     int py = (cursor_y + gy);
-                    size_t idx = (py * atlas_w + px) * 4;
+                    size_t idx = size_t(py * atlas_w + px) * 4ull;
 
                     // store subpixel coverage into RGB and set alpha to 255 so shader can reconstruct properly.
                     // this preserves ClearType detail.
@@ -222,10 +222,10 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
         // use the floating design advance so render positions preserve sub-pixel spacing & kerning
         gi.advance = adv_f;
         // compute vertical offset (existing logic)
-        gi.offset_y = baseline_offset - int(metrics.ascent * scale - bounds.top);
+        gi.offset_y = baseline_offset - std::roundf(metrics.ascent * scale - bounds.top);
         // compute horizontal offset: distance from pen origin to bitmap origin (in pixels)
         // bounds.left is bitmap origin relative to glyph origin; gm.leftSideBearing is design units from glyph origin to left ink edge
-        gi.offset_x = int(std::round(bounds.left - gm.leftSideBearing * scale));
+        gi.offset_x = std::roundf(bounds.left - gm.leftSideBearing * scale);
         gi.metrics = gm;
 
         atlas.glyphs.emplace(cp, gi);
@@ -246,30 +246,34 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
     tex_desc.SampleDesc.Count = 1;
     tex_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
-    CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
-    if (FAILED(device->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &tex_desc,
+    CD3DX12_HEAP_PROPERTIES default_heap(D3D12_HEAP_TYPE_DEFAULT);
+
+    if (FAILED(device->CreateCommittedResource(&default_heap, D3D12_HEAP_FLAG_NONE, &tex_desc,
         D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&atlas.texture))))
         throw std::runtime_error("Failed to create font texture");
 
-    // upload (simple - reuse your existing upload flow)
-    UINT64 uploadSize = GetRequiredIntermediateSize(atlas.texture.Get(), 0, 1);
+    // upload (simple - reuse our existing upload flow)
+    UINT64 upload_size = GetRequiredIntermediateSize(atlas.texture.Get(), 0, 1);
+
     ComPtr<ID3D12Resource> upload;
-    CD3DX12_HEAP_PROPERTIES uploadHeap(D3D12_HEAP_TYPE_UPLOAD);
-    auto uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadSize);
-    if (FAILED(device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadDesc,
+    CD3DX12_HEAP_PROPERTIES upload_heap(D3D12_HEAP_TYPE_UPLOAD);
+
+    CD3DX12_RESOURCE_DESC upload_desc = CD3DX12_RESOURCE_DESC::Buffer(upload_size);
+
+    if (FAILED(device->CreateCommittedResource(&upload_heap, D3D12_HEAP_FLAG_NONE, &upload_desc,
         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&upload))))
         throw std::runtime_error("Failed to create upload buffer");
 
     D3D12_SUBRESOURCE_DATA sub{};
     sub.pData = atlas_data.data();
-    sub.RowPitch = atlas_w * 4;
-    sub.SlicePitch = sub.RowPitch * atlas_h;
+    sub.RowPitch = size_t(atlas_w) * 4ull;
+    sub.SlicePitch = sub.RowPitch * size_t(atlas_h);
 
     auto& cmd = current_frame.command_list;
     cmd->Reset(current_frame.command_allocator.Get(), nullptr);
     UpdateSubresources(cmd.Get(), atlas.texture.Get(), upload.Get(), 0, 0, 1, &sub);
 
-    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(atlas.texture.Get(),
+    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(atlas.texture.Get(),
         D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     cmd->ResourceBarrier(1, &barrier);
     cmd->Close();
@@ -295,7 +299,7 @@ bool c_fonts::build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12D
 
     device->CreateShaderResourceView(atlas.texture.Get(), &srv_desc, cpu);
 
-    auto gpu = m_font_srv_heap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu = m_font_srv_heap->GetGPUDescriptorHandleForHeapStart();
     gpu.ptr += SIZE_T(descriptor_index) * m_descriptor_size;
     atlas.srv_gpu = gpu;
 
@@ -364,8 +368,8 @@ image_handle c_fonts::load_image_rgba(const uint8_t* pixels, uint32_t width, uin
 
     D3D12_SUBRESOURCE_DATA sub{};
     sub.pData = pixels;
-    sub.RowPitch = width * 4;
-    sub.SlicePitch = sub.RowPitch * height;
+    sub.RowPitch = size_t(width) * 4ull;
+    sub.SlicePitch = sub.RowPitch * size_t(height);
 
     auto& cmd = current_frame.command_list;
     cmd->Reset(current_frame.command_allocator.Get(), nullptr);

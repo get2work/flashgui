@@ -29,8 +29,6 @@ static void init_console() {
 	std::cout << "[console] Initialized" << std::endl;
 }
 
-static int magic_value = 129949214;
-
 int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	init_console();
@@ -54,12 +52,10 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	
 	MSG msg{}; bool running = true;
 
-	printf("Magic number address: %p\n", (void*)&magic_value);
-
-	// At init time — load a 64x64 red square as a test
 	std::vector<uint8_t> test_pixels(64 * 64 * 4, 255); // solid white RGBA
-	auto icon = fgui::render->load_image(test_pixels.data(), 64, 64);
-	printf("Test image handle: %u\n", icon);
+	
+	fgui::image_handle test_img = fgui::render->load_image(test_pixels.data(), 64, 64);
+	fgui::image_handle logo_handle = fgui::render->load_image("C:\\Users\\dev\\source\\repos\\get2work\\flashgui\\flashgui\\images\\logo.png");
 
 	while (running) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
@@ -69,17 +65,25 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		}
 
 		if (!running) break;
-
 		fgui::render->begin_frame();
-
+		//background
 		fgui::render->draw_quad({ 0, 0 }, fgui::process->window.get_size(), { 0.05f, 0.05f, 0.1f, 1.f });
+
+		fgui::render->draw_text("Press INSERT to draw the image loaded from the file", { 220, 260 }, L"Verdana", 14, {1.f, 1.f, 1.f, 1.f});
+
+		if (fgui::process->input.key_down[VK_INSERT]) {
+			fgui::render->draw_image(logo_handle, { 300, 300 }, { 256, 256 }); // loaded from file
+		}
+
+		fgui::render->draw_image(test_img, { 50, 300 }, { 64, 64 }); // full color
+		fgui::render->draw_image(test_img, { 150, 300 }, { 128, 128 }, { 1.f, 0.5f, 0.5f, 0.8f }); // tinted + scaled
 
 		// sample immediate mode circle outline, should be drawn on top of the background quad
 		fgui::render->draw_circle_outline({ 140, 30 }, { 50, 50 }, { 1.f, 0.7f, 0.7f, 1.f }, 0.f, 5.f);
 		fgui::render->draw_quad_outline({ 140, 90 }, { 50, 50 }, { 0.7f, 1.f, 0.7f, 1.f }, 3.f);
 
 		// draw some test text with the current FPS in cyan color
-		fgui::render->draw_text("DX12 Test Window FPS: " + std::to_string(fgui::render->get_fps()), {200, 50}, verdanab24, {0.f, 1.f, 1.f, 1.f});
+		fgui::render->draw_text("DX12 Test Window FPS: " + std::to_string(fgui::render->get_fps()), { 200, 50 }, verdanab24, { 0.f, 1.f, 1.f, 1.f});
 
 		// fonts are cached, so this should be fast after the first frame
 		fgui::render->draw_text("mouse pos: " + std::to_string(fgui::process->input.mouse_pos.x) + ", " + std::to_string(fgui::process->input.mouse_pos.y), {200, 80}, L"Comic Sans MS", 24, {1.f, 1.f, 0.f, 1.f});
@@ -88,13 +92,10 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 		" rmb: " + std::to_string(fgui::process->input.mouse_down[1]) +
 			" mmb: " + std::to_string(fgui::process->input.mouse_down[2]) +
 			" bkmb: " + std::to_string(fgui::process->input.mouse_down[3]) +
-			" fwmb: " + std::to_string(fgui::process->input.mouse_down[4]), {200, 140}, impact32, {1.f, 1.f, 1.f, 1.f});
-		fgui::render->draw_text("Magic value: " + std::to_string(magic_value), { 200, 180 }, verdanab24, { 1.f, 0.5f, 0.f, 1.f });
+			" fwmb: " + std::to_string(fgui::process->input.mouse_down[4]), {200, 140}, impact32, { 1.f, 1.f, 1.f, 1.f });
+
 		fgui::render->draw_text("Mouse wheel: " + std::to_string(fgui::process->input.scroll_delta), { 200, 220 }, impact32, { 1.f, 1.f, 1.f, 1.f });
 		fgui::render->draw_triangle({ 140, 150 }, { 190, 150 }, { 165, 198 }, { 0.7f, 0.7f, 1.f, 1.f });
-		
-		fgui::render->draw_image(icon, {50, 300}, {64, 64}); // full color
-		fgui::render->draw_image(icon, {150, 300}, {128, 128}, {1.f, 0.5f, 0.5f, 0.8f}); // tinted + scaled
 		
 		fgui::render->end_frame();
 	}

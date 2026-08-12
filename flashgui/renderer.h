@@ -25,6 +25,13 @@ namespace fgui {
 		external_overlay
 	};
 
+	struct image_data {
+		int width{};
+		int height{};
+		int channels{};
+		std::vector<uint8_t> pixels; // RGBA/RGB
+	};
+
 	class c_renderer {
 	public:
 		c_renderer(D3D_FEATURE_LEVEL feature_lvl, UINT buffer_count) :
@@ -71,6 +78,8 @@ namespace fgui {
 		// Load an RGBA image (4 bytes per pixel) and return a handle for drawing
 		image_handle load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height);
 
+		image_handle load_image(const std::string& path, int desired_channels = 4);
+		
 		font_handle get_font(const std::wstring& family,
 			int size_px,
 			DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
