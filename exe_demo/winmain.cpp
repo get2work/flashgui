@@ -56,7 +56,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 
 	printf("Magic number address: %p\n", (void*)&magic_value);
 
-	// At init time — load a 64x64 red square as a test
+	// At init time â€” load a 64x64 red square as a test
 	std::vector<uint8_t> test_pixels(64 * 64 * 4, 255); // solid white RGBA
 	auto icon = fgui::render->load_image(test_pixels.data(), 64, 64);
 	printf("Test image handle: %u\n", icon);

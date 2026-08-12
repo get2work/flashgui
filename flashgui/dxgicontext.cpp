@@ -500,7 +500,7 @@ void s_dxgicontext::end_frame(std::vector<std::vector<shape_instance>>& shapes) 
 		D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { quad_vbv, vbv_inst };
 		cmd->IASetVertexBuffers(0, 2, vbvs);
 
-		// Issue draws — skip descriptor table bind for bucket 0 if texture hasnt changed
+		// Issue draws â€” skip descriptor table bind for bucket 0 if texture hasnt changed
 		D3D12_GPU_DESCRIPTOR_HANDLE last_srv{};
 		for (uint32_t d = 0; d < draw_count; d++) {
 			D3D12_GPU_DESCRIPTOR_HANDLE srv = fonts->get_font_srv_gpu(draw_stack[d].bucket);
