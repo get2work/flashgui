@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "hooks.h"
 
+#include "third_party/minhook/include/MinHook.h"
+
 static void init_console() {
     // ignore parent console, create new one
     AllocConsole();

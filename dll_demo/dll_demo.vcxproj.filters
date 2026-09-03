@@ -5,6 +5,21 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="third_party">
+      <UniqueIdentifier>{357ff20b-edfe-4139-a64a-2090fdf2d301}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\minhook">
+      <UniqueIdentifier>{a02f04c8-19ff-409e-890c-d7f200248f1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\minhook\include">
+      <UniqueIdentifier>{c8b68e2f-e62f-4d80-ae78-93cea17ccf9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\minhook\src">
+      <UniqueIdentifier>{3c52434d-43ae-4740-a7be-0d983ce4a1ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\minhook\src\hde">
+      <UniqueIdentifier>{3a3bda8f-5c68-4ebd-afdf-dd45f0da3664}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -14,6 +29,30 @@
       <Filter>pch</Filter>
     </ClInclude>
     <ClInclude Include="hooks.h" />
+    <ClInclude Include="third_party\minhook\include\MinHook.h">
+      <Filter>third_party\minhook\include</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\buffer.h">
+      <Filter>third_party\minhook\src</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\trampoline.h">
+      <Filter>third_party\minhook\src</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\hde\hde32.h">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\hde\hde64.h">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\hde\pstdint.h">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\hde\table32.h">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\minhook\src\hde\table64.h">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -21,5 +60,20 @@
     </ClCompile>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="present.cpp" />
+    <ClCompile Include="third_party\minhook\src\buffer.c">
+      <Filter>third_party\minhook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\minhook\src\hook.c">
+      <Filter>third_party\minhook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\minhook\src\trampoline.c">
+      <Filter>third_party\minhook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\minhook\src\hde\hde32.c">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\minhook\src\hde\hde64.c">
+      <Filter>third_party\minhook\src\hde</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
