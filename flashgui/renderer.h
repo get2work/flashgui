@@ -79,6 +79,8 @@ namespace fgui {
 		image_handle load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height);
 
 		image_handle load_image(const std::string& path, int desired_channels = 4);
+
+		image_handle load_image_from_memory(const unsigned char* img_data, int img_size);
 		
 		font_handle get_font(const std::wstring& family,
 			int size_px,

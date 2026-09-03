@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "images/logo.h"
 
 static void init_console() {
 	// try to attach to a parent console. If none, create a new one.
@@ -55,7 +56,7 @@ int __stdcall WinMain(_In_ HINSTANCE h_instance, _In_opt_ HINSTANCE, _In_ LPSTR,
 	std::vector<uint8_t> test_pixels(64 * 64 * 4, 255); // solid white RGBA
 	
 	fgui::image_handle test_img = fgui::render->load_image(test_pixels.data(), 64, 64);
-	fgui::image_handle logo_handle = fgui::render->load_image("C:\\Users\\dev.DESKTOP-Q7BA7UO\\source\\repos\\get2work\\flashgui\\flashgui\\images\\logo.png");
+	fgui::image_handle logo_handle = fgui::render->load_image_from_memory(logo_png, logo_png_size);
 
 	while (running) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {

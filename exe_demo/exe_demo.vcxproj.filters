@@ -10,10 +10,16 @@
     <Filter Include="pch">
       <UniqueIdentifier>{718a4bf3-7fd2-4802-8e89-07cd9cb34078}</UniqueIdentifier>
     </Filter>
+    <Filter Include="images">
+      <UniqueIdentifier>{ffafaedb-fe6c-4d25-a2cd-c1eaa35d211d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="images\logo.h">
+      <Filter>images</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

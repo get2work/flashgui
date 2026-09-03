@@ -306,3 +306,20 @@ image_handle c_renderer::load_image(const std::string& path, int desired_channel
 
 	return handle;
 }
+
+image_handle c_renderer::load_image_from_memory(const unsigned char* img_data, int img_size)
+{
+	int w, h, ch;
+	uint8_t* data = stbi_load_from_memory(
+		img_data, img_size,
+		&w, &h, &ch, 4); // force RGBA
+
+	if (!data) {
+		throw std::runtime_error("failed to decode embedded PNG logo");
+	}
+
+	image_handle handle = load_image(data, static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+	stbi_image_free(data);
+
+	return handle;
+}
