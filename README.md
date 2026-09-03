@@ -18,12 +18,9 @@ Quick build (recommended)
 1. Clone repository:
    - git clone --recurse-submodules <repo_url>
 2. Install dependencies via vcpkg (manifest present):
-   - Open Developer PowerShell for VS 2022 and from repo root:
-     - bootstrap vcpkg if you haven't already: `.\vcpkg\bootstrap-vcpkg.bat`
-     - Install triplet (manifest will be used): `.\vcpkg\vcpkg install --triplet x64-windows`
-   - Or configure vcpkg integration for Visual Studio:
-     - `.\vcpkg\vcpkg integrate install`
-3. Open the solution in Visual Studio 2022:
+   - Open Developer PowerShell for VS and from repo root:
+     - `vcpkg integrate install`
+3. Open the solution in Visual Studio:
    - Set Solution Platform to `x64`
    - Build: use __Build Solution__
 4. Run:
