@@ -71,11 +71,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PublicIncludeDirectories>$(ProjectDir)\include\;</PublicIncludeDirectories>
+    <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)\include\;</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PublicIncludeDirectories>$(ProjectDir)\include\;</PublicIncludeDirectories>
+    <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)\include\;</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -93,6 +93,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -108,6 +109,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -125,6 +127,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;NOMINMAX;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -144,6 +147,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -169,6 +173,46 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="frame_resource.hpp" />
     <ClInclude Include="include\flashgui.h" />
+    <ClInclude Include="include\flashgui_ui.h" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_types.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_backend.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_pics.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_theme.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_style.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_core.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_window.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_widgets.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_input.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_popup.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_color.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_cards.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_hud.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_tilemap.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_api.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_log.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_shell.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_cfg.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_census.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_kit_fwd.hpp" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_theme.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_style.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_core.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_window.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_widgets.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_input.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_popup.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_color.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_cards.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_hud.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_tilemap.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_api.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_log.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_shell.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_cfg.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_census.inl" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_kit.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="procmanager.h" />
     <ClInclude Include="pso_builder.hpp" />

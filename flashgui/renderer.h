@@ -67,6 +67,10 @@ namespace fgui {
 		void draw_text(const std::string& text, vec2i pos, font_handle font, DirectX::XMFLOAT4 clr);
 		void draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 clr);
 		void draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 tint = { 1.f, 1.f, 1.f, 1.f });
+		void draw_image_uv(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 uv, DirectX::XMFLOAT4 tint = { 1.f, 1.f, 1.f, 1.f });
+		std::pair<uint32_t, uint32_t> image_size(image_handle img) const;
+		void unload_image(image_handle img);
+		void unload_images(const std::vector<image_handle>& images);
 
 		float measure_text_width(const std::string& text, font_handle font) const;
 		float measure_text_width(const std::string& text, const wchar_t* font_family, int px_size, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL) const;

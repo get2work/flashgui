@@ -15,12 +15,11 @@ add_library(flashgui STATIC
 target_include_directories(flashgui
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/flashgui/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/flashgui>
         $<INSTALL_INTERFACE:include>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/flashgui
 )
 
-target_compile_features(flashgui PUBLIC cxx_std_17)
+target_compile_features(flashgui PUBLIC cxx_std_20)
 
 # Find dependencies
 find_package(directx-headers CONFIG REQUIRED)
@@ -47,6 +46,25 @@ install(TARGETS flashgui
 
 install(DIRECTORY flashgui/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(FILES
+    flashgui/renderer.h
+    flashgui/dxgicontext.h
+    flashgui/procmanager.h
+    flashgui/vec2.h
+    flashgui/fonts.h
+    flashgui/frame_resource.hpp
+    flashgui/pso_builder.hpp
+    flashgui/root_sig_builder.hpp
+    flashgui/shader_loader.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(FILES
+    flashgui/shaders/quad_ps.h
+    flashgui/shaders/quad_vs.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/shaders
 )
 
 install(EXPORT flashgui-targets
