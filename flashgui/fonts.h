@@ -89,11 +89,11 @@ namespace fgui {
 
         // Image loading: returns a handle that occupies the same descriptor/bucket space as fonts
         image_handle load_image_rgba(const uint8_t* pixels, uint32_t width, uint32_t height,
-            ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue,
-            frame_resource& current_frame);
+            ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue);
 
         // Look up a loaded image by handle
         const image_entry* get_image(image_handle h) const;
+        bool unload_image(image_handle h);
 
     private:
         bool build_font_atlas(font_handle fh, font_atlas& atlas, ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue, frame_resource& current_frame);
@@ -108,6 +108,7 @@ namespace fgui {
 
         // Loaded images, keyed by the same descriptor index used as the handle
         std::unordered_map<image_handle, image_entry> m_images;
+        std::vector<image_handle> m_free_image_handles;
 
         uint32_t m_descriptor_size = 0;
 

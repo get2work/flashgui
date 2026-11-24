@@ -2,7 +2,7 @@
 #include <d3d12.h>
 #include <utility>
 
-#include "../renderer.h"
+#include <renderer.h>
 
 namespace fgui {
 

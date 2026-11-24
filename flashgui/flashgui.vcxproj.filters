@@ -53,6 +53,124 @@
       <Filter>src\shaders</Filter>
     </ClInclude>
     <ClInclude Include="include\flashgui.h" />
+    <ClInclude Include="include\flashgui_ui.h" />
+    <ClInclude Include="include\flashgui\ui\kit\ui_types.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_backend.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_pics.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_theme.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_style.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_core.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_window.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_widgets.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_input.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_popup.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_color.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_cards.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_hud.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_tilemap.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_api.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_log.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_shell.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_cfg.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_census.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_kit_fwd.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_theme.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_style.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_core.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_window.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_widgets.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_input.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_popup.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_color.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_cards.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_hud.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_tilemap.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_api.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_log.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_shell.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_menu_cfg.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_census.inl">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="include\flashgui\ui\kit\ui_kit.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="vec2.h">
       <Filter>src</Filter>
     </ClInclude>

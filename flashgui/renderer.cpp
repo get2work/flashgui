@@ -250,7 +250,7 @@ void c_renderer::draw_triangle(vec2i p1, vec2i p2, vec2i p3, DirectX::XMFLOAT4 c
 image_handle c_renderer::load_image(const uint8_t* rgba_pixels, uint32_t width, uint32_t height) {
 	image_handle h = m_dx->fonts->load_image_rgba(
 		rgba_pixels, width, height,
-		m_dx->device, m_dx->cmd_queue, m_dx->get_current_frame_resource());
+		m_dx->device, m_dx->cmd_queue);
 
 	// Ensure the instance bucket exists for this handle
 	if (h >= im_instances.size()) {
@@ -261,20 +261,52 @@ image_handle c_renderer::load_image(const uint8_t* rgba_pixels, uint32_t width, 
 }
 
 void c_renderer::draw_image(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 tint) {
+	draw_image_uv(img, pos, size, DirectX::XMFLOAT4(0.f, 0.f, 1.f, 1.f), tint);
+}
+
+void c_renderer::draw_image_uv(image_handle img, vec2i pos, vec2i size, DirectX::XMFLOAT4 uv, DirectX::XMFLOAT4 tint) {
 	if (process->needs_resize())
 		return;
 
 	if (img >= im_instances.size())
 		return;
 
-	// Full UV rect [0,0]->[1,1] covers the entire image texture
-	// Reuse shape_type 5 (text_quad) since the pixel shader already samples t0 with UV
 	im_instances.at(img).push_back(shape_instance(
 		pos, size, tint,
 		0.f, 1.f,
 		shape_type::image_quad,
-		DirectX::XMFLOAT4(0.f, 0.f, 1.f, 1.f)
+		uv
 	));
+}
+
+std::pair<uint32_t, uint32_t> c_renderer::image_size(image_handle img) const {
+	if (!m_dx || !m_dx->fonts)
+		return { 0, 0 };
+	const image_entry* entry = m_dx->fonts->get_image(img);
+	return entry ? std::pair<uint32_t, uint32_t>{ entry->width, entry->height } : std::pair<uint32_t, uint32_t>{ 0, 0 };
+}
+
+void c_renderer::unload_image(image_handle img) {
+	unload_images({ img });
+}
+
+void c_renderer::unload_images(const std::vector<image_handle>& images) {
+	if (!m_dx || !m_dx->fonts)
+		return;
+	std::vector<image_handle> loaded;
+	loaded.reserve(images.size());
+	for (const image_handle img : images) {
+		if (!m_dx->fonts->get_image(img))
+			continue;
+		if (img < im_instances.size())
+			im_instances[img].clear();
+		loaded.push_back(img);
+	}
+	if (loaded.empty())
+		return;
+	m_dx->wait_for_gpu();
+	for (const image_handle img : loaded)
+		m_dx->fonts->unload_image(img);
 }
 
 float c_renderer::measure_text_width(const std::string& text, font_handle font) const {

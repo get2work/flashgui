@@ -25,7 +25,7 @@ void c_fonts::initialize(ComPtr<ID3D12Device> device) {
         throw std::runtime_error("Failed to create font SRV heap");
 
     m_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    m_next_descriptor_index = 0;
+    m_next_descriptor_index = 1;
 }
 
 std::vector<std::wstring> c_fonts::enumerate_families() const {
@@ -329,14 +329,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE c_fonts::get_font_srv_gpu(font_handle fh) const {
 }
 
 image_handle c_fonts::load_image_rgba(const uint8_t* pixels, uint32_t width, uint32_t height,
-    ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue,
-    frame_resource& current_frame) {
-    
-    if (m_next_descriptor_index >= m_max_fonts)
-        throw std::runtime_error("Exceeded texture descriptor capacity");
-
-    image_handle h = static_cast<image_handle>(m_next_descriptor_index++);
-
+    ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> cmd_queue) {
     // Create the GPU texture
     D3D12_RESOURCE_DESC tex_desc = {};
     tex_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -371,19 +364,56 @@ image_handle c_fonts::load_image_rgba(const uint8_t* pixels, uint32_t width, uin
     sub.RowPitch = size_t(width) * 4ull;
     sub.SlicePitch = sub.RowPitch * size_t(height);
 
-    auto& cmd = current_frame.command_list;
-    cmd->Reset(current_frame.command_allocator.Get(), nullptr);
-    UpdateSubresources(cmd.Get(), entry.texture.Get(), upload.Get(), 0, 0, 1, &sub);
+    ComPtr<ID3D12CommandAllocator> upload_allocator;
+    HRESULT hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&upload_allocator));
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to create image upload command allocator");
+
+    ComPtr<ID3D12GraphicsCommandList> upload_command_list;
+    hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, upload_allocator.Get(), nullptr,
+        IID_PPV_ARGS(&upload_command_list));
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to create image upload command list");
+
+    ComPtr<ID3D12Fence> upload_fence;
+    hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&upload_fence));
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to create image upload fence");
+
+    std::unique_ptr<void, decltype(&CloseHandle)> completion_event(CreateEventW(nullptr, FALSE, FALSE, nullptr), CloseHandle);
+    if (!completion_event)
+        throw std::runtime_error("Failed to create image upload completion event");
+
+    auto* cmd = upload_command_list.Get();
+    UpdateSubresources(cmd, entry.texture.Get(), upload.Get(), 0, 0, 1, &sub);
 
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(entry.texture.Get(),
         D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     cmd->ResourceBarrier(1, &barrier);
-    cmd->Close();
+    hr = cmd->Close();
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to close image upload command list");
 
-    ID3D12CommandList* lists[] = { cmd.Get() };
+    ID3D12CommandList* lists[] = { cmd };
     cmd_queue->ExecuteCommandLists(1, lists);
-    current_frame.signal(cmd_queue);
-    current_frame.wait_for_gpu();
+    hr = cmd_queue->Signal(upload_fence.Get(), 1);
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to signal image upload fence");
+    hr = upload_fence->SetEventOnCompletion(1, completion_event.get());
+    if (FAILED(hr))
+        throw std::runtime_error("Failed to set image upload completion event");
+    if (WaitForSingleObject(completion_event.get(), INFINITE) != WAIT_OBJECT_0)
+        throw std::runtime_error("Failed while waiting for image upload");
+
+    image_handle h = 0;
+    if (!m_free_image_handles.empty()) {
+        h = m_free_image_handles.back();
+        m_free_image_handles.pop_back();
+    } else {
+        if (m_next_descriptor_index >= m_max_fonts)
+            throw std::runtime_error("Exceeded texture descriptor capacity");
+        h = static_cast<image_handle>(m_next_descriptor_index++);
+    }
 
     // Create SRV at the allocated descriptor index
     auto cpu = m_font_srv_heap->GetCPUDescriptorHandleForHeapStart();
@@ -409,4 +439,13 @@ const image_entry* c_fonts::get_image(image_handle h) const {
     auto it = m_images.find(h);
     if (it == m_images.end()) return nullptr;
     return &it->second;
+}
+
+bool c_fonts::unload_image(image_handle h) {
+    auto it = m_images.find(h);
+    if (it == m_images.end())
+        return false;
+    m_images.erase(it);
+    m_free_image_handles.push_back(h);
+    return true;
 }

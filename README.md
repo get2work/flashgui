@@ -3,6 +3,7 @@
 Small DirectX12 overlay renderer + tiny GUI primitives.  
 Includes:
 - renderer core (DirectX12): quad instancing, SDF shapes, text rendering via DirectWrite glyph atlases
+- immediate-mode UI kit: windows, tabs, widgets, popups, keybind capture, HUD panels, tiled maps, and menu/config helpers
 - standalone demo (`exe_demo`) and injector demo (`dll_demo`)
 - precompiled shaders (`quad_vs.cso` / `quad_ps.cso`) embedded as byte arrays and loaded at runtime = no runtime shader compiler required
 - font system powered by DirectWrite: system fonts are enumerated automatically and glyph atlases are built on demand
@@ -32,6 +33,45 @@ Font system
 - Call `get_font_families()` on the renderer to retrieve a list of available family names.
 - Request a font with `get_or_create_font(family, weight, style, size_px)`. A glyph atlas (D3D12 texture) is built on demand and cached for the lifetime of the renderer.
 - No external font files or offline baking step is required.
+
+UI kit
+- Include `flashgui_ui.h` and use the API in `fgui::ui`. The port contains the `rt_gi` kit's widget, menu, keybind,
+  popup, colour picker, HUD, tilemap, config, logging, and census modules, with drawing and input adapted to FlashGUI.
+- The menu app reads mouse/key state from `fgui::process`; install `ui_set_key_reader` when the host needs to provide
+  key transitions the window input cannot see. Optional icons can be supplied with `ui_set_icon_provider`.
+- Call `ui_menu_setup` and register tabs before the frame loop. Within each frame, after `render->begin_frame()`, call
+  `ui_menu_poll`, draw the menu when it returns true, then call `ui_menu_hud` and `ui_menu_tick` before
+  `render->end_frame()`. Call `ui_menu_shutdown()` when the menu is no longer used.
+- The current renderer uses Segoe UI for kit font requests and the picture cache uploads on first use synchronously.
+  Custom font-file loading and background image decoding are not supported by this backend.
+
+```cpp
+#include <flashgui_ui.h>
+
+using namespace fgui::ui;
+
+bool enabled = false;
+
+void setup_ui() {
+    ui_menu_setup("FlashGUI - demo", VK_INSERT, {});
+    ui_menu_add_tab("General", { "Main" }, [](int32, int64) {
+        if (ui_group_begin("Options", 0)) {
+            ui_toggle("Enabled", enabled);
+            ui_group_end();
+        }
+    });
+}
+
+void draw_ui_frame() {
+    fgui::render->begin_frame();
+    const int64 now = ui_sys_ms();
+    if (ui_menu_poll(true))
+        ui_menu_draw(now);
+    ui_menu_hud();
+    ui_menu_tick(now);
+    fgui::render->end_frame();
+}
+```
 
 Shader system
 - Vertex and pixel shaders are precompiled to DXGI shader object (`.cso`) format and checked into the repository (`flashgui/shaders/quad_vs.cso`, `flashgui/shaders/quad_ps.cso`).
